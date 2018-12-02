@@ -15,6 +15,7 @@ class bitwindow : public XCBWindow
 public:
 	static bitwindow* create();
 	void onExpose(int x, int y, int width, int height, int count);
+	void repaint();
 private:
 	bitwindow(const Rect& rect);
 };
