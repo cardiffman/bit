@@ -1,0 +1,11 @@
+[ { "scene": "first", "frames": [
+	{ "label": "one", 
+		"left": 0, 
+		"top": 0, 
+		"width": 40, 
+		"height": 40, 
+		"image": null, 
+"color": "0xff0000" 
+	}
+	]
+}]
