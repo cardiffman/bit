@@ -362,6 +362,21 @@ void XCBWindow::eventLoop()
 			break;
 	}
 }
+bool XCBWindow::pollEvent()
+{
+	xcb_generic_event_t  *event;
+	if ((event = xcb_poll_for_event (XCBWindow::xcb_connection)))
+	{
+		bool more = XCBWindow::doOneEvent(event);
+		free(event);
+		return more;
+	}
+	return true;
+}
+int XCBWindow::event_fd()
+{
+	return xcb_get_file_descriptor(XCBWindow::xcb_connection);
+}
 bool XCBWindow::doOneEvent(xcb_generic_event_t* event)
 {
 	XCBWindow* window;

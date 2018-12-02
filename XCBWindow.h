@@ -84,6 +84,8 @@ public:
 	static xcb_connection_t* xcb_connection;
 	static bool doOneEvent(xcb_generic_event_t* event);
 	static void eventLoop();
+	static bool pollEvent();
+	static int event_fd();
 	static void getKeyTranslations(xcb_keysym_t syms[], const xcb_key_press_event_t& ev);
 protected:
 	explicit XCBWindow(xcb_window_t window);
