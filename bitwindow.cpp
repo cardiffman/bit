@@ -26,8 +26,8 @@ bitwindow* bitwindow::create()
 	uint32_t* pixels = (uint32_t*)Mem;
 	for (unsigned y = 0; y<720; y++)
 		for (unsigned x = 0; x<1280; x++)
-			pixels[y*1280+x] = ((x^y)&1)?0xFFFFFFFF:0xFF000000;
-	bitwindow* w = new bitwindow(Rect(360,120,1280,720));
+			pixels[y*1280+x] = 0xFFEECCDD;//((x^y)&1)?0xFFFFFFFF:0xFF000000;
+	bitwindow* w = new bitwindow(Rect((1920-1280)/2,(1080-720)/2,1280,720));
 	return w;
 }
 void bitwindow::repaint()
