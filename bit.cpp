@@ -17,6 +17,8 @@
 using std::cin;
 using std::cout;
 using std::vector;
+using std::cerr;
+using std::endl;
 
 struct Asset {
 	unsigned id; uint8_t* mem; unsigned width; unsigned height; unsigned rowbytes;
@@ -94,6 +96,12 @@ void draw_scene()
 				);
 	}
 }
+double get_time()
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_REALTIME, &ts);
+	return ts.tv_sec + (ts.tv_nsec*1e-9);
+}
 int main(int, char**argv)
 {
 	auto file = std::fstream(argv[1], std::ios::in | std::ios::binary);
@@ -116,30 +124,95 @@ int main(int, char**argv)
 	draw_scene();
 	win->repaint();
 	//XCBWindow::eventLoop();
+
+	double anim_last = get_time();
+	double anim_next = anim_last+1.0/60;
+	double poll_xcb = 0;
 	while (true)
 	{
+		//cout << "Loop top " << (uint64_t)(anim_last*1000) << ' ' << (uint64_t)(anim_next*1000) << endl;
 		pollfd pollfds[1] = { { XCBWindow::event_fd(), POLLIN, 0} };
-		int p = poll(pollfds, 1, 16);
-		if (p > 0) {
-			if (pollfds[0].revents == POLLIN) {
-				if (!XCBWindow::pollEvent())
-					break;
-			}
-		}
-		else
+		double anim_now = get_time();
+		if (anim_now < anim_next)
 		{
-			static int dx=8;
-			static int dy=8;
-			scene.glyphs[1].x+=dx;
-			scene.glyphs[1].y+=dy;
-			if (scene.glyphs[1].x >= 1180)
-				dx=-dx;
-			else if (scene.glyphs[1].x <= 0)
-				dx=-dx;
-			if (scene.glyphs[1].y >= 620)
+			cout << __LINE__ << " Calling poll for " << anim_next-anim_now << " sec." << endl;
+			int p = poll(pollfds, 1, 1000*(anim_next-anim_now));
+			cout << __LINE__ << " Poll returned " << p << endl;
+			bool quit = false;
+			while (p > 0) {
+				cout << __LINE__ << " XCB fd one time" << endl;
+				if (pollfds[0].revents /* == POLLIN*/) {
+					anim_now = get_time();
+					if (anim_now - poll_xcb > .1)
+						cout << __LINE__ << ' ' <<anim_now - poll_xcb << " seconds since XCB fd" << endl;
+					poll_xcb = anim_now;
+					if (!XCBWindow::pollEvents())
+					{
+						quit = true;
+						break; // exit loop if all windows are gone.
+					}
+				}
+				anim_now = get_time();
+				if (anim_now > anim_next) {
+					cout << __LINE__ << " Time is now expired." << endl;
+					break;
+				}
+				cout << __LINE__ << " Calling poll for " << anim_next-anim_now << " sec." << endl;
+				pollfds[0].fd = XCBWindow::event_fd(); pollfds[0].revents = 0; pollfds[0].events = POLLIN;
+				p = poll(pollfds, 1, 1000*(anim_next-anim_now));
+				cout << __LINE__ << " Poll returned " << p << endl;
+			}
+			if (quit)
+				break;
+		}
+		//else
+		{
+			static int dx=60;
+			static int dy=60;
+			double deltat = get_time()-anim_last;
+			//cout << "Delta t: " << deltat << endl;
+			anim_last=get_time();
+			anim_next = anim_last + 1.0/60;
+			scene.glyphs[1].x+=dx * deltat;
+			scene.glyphs[1].y+=dy * deltat;
+			if (scene.glyphs[1].x+scene.glyphs[1].width > 1280)
+			{
+				cout << "X Flip: " << scene.glyphs[1].x << ' ' << scene.glyphs[1].x+scene.glyphs[1].width << ' ' << dx << endl;
+				int overage = scene.glyphs[1].x+scene.glyphs[1].width - 1280;
+				cout << "X Flip overage " << overage << endl;
+				scene.glyphs[1].x = 1280 - scene.glyphs[1].width - overage;
+				dx=-60;
+				cout << "X Flip: " << scene.glyphs[1].x << ' ' << scene.glyphs[1].x+scene.glyphs[1].width << ' ' << dx << endl;
+			}
+			else if (scene.glyphs[1].x < 0)
+			{
+				cout << "X Flip: " << scene.glyphs[1].x << ' ' << dx << endl;
+				int overage = -scene.glyphs[1].x;
+				scene.glyphs[1].x = 0 + overage;
+				dx=60;
+				cout << "X Flip: " << scene.glyphs[1].x << ' ' << dx << endl;
+			}
+			if (scene.glyphs[1].y+scene.glyphs[1].height > 720)
+			{
+				cout << "Y Flip 720: " << scene.glyphs[1].y << ' ' << dy << endl;
+				int overage = scene.glyphs[1].y+scene.glyphs[1].height - 720;
+				cout << "Y Flip overage " << overage << endl;
+				scene.glyphs[1].y = 720 - scene.glyphs[1].height - overage;
+				if (scene.glyphs[1].y+scene.glyphs[1].height > 720)
+				{
+					cout << "Flipped but still bad?? " << scene.glyphs[1].y << ' ' << scene.glyphs[1].y+scene.glyphs[1].height << endl;
+				}
+				dy=-60;
+				cout << "Y Flip 720: " << scene.glyphs[1].y << ' ' << dy << endl;
+			}
+			else if (scene.glyphs[1].y < 0)
+			{
+				cout << "Y Flip: " << scene.glyphs[1].y << ' ' << dy << endl;
+				int overage = -scene.glyphs[1].y;
+				scene.glyphs[1].y = 0 + overage;
 				dy=-dy;
-			else if (scene.glyphs[1].y <= 0)
-				dy=-dy;
+				cout << "Y Flip: " << scene.glyphs[1].y << ' ' << dy << endl;
+			}
 			draw_scene();
 			win->repaint();
 		}

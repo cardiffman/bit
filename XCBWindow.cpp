@@ -104,7 +104,7 @@ void XCBWindow::onKeyPress(const KeyDescriptor& key)
 
 void XCBWindow::onConfigure(int16_t x, int16_t y, int16_t width, int16_t height)
 {
-	clog << __PRETTY_FUNCTION__ << ' ' << this << endl;
+	//clog << __PRETTY_FUNCTION__ << ' ' << this << endl;
 }
 
 Size XCBWindow::getSize() const
@@ -373,6 +373,18 @@ bool XCBWindow::pollEvent()
 	}
 	return true;
 }
+bool XCBWindow::pollEvents()
+{
+	xcb_generic_event_t  *event;
+	while ((event = xcb_poll_for_event (XCBWindow::xcb_connection)))
+	{
+		bool more = XCBWindow::doOneEvent(event);
+		free(event);
+		if (!more)
+			return more;
+	}
+	return true;
+}
 int XCBWindow::event_fd()
 {
 	return xcb_get_file_descriptor(XCBWindow::xcb_connection);
@@ -517,11 +529,11 @@ bool XCBWindow::doOneEvent(xcb_generic_event_t* event)
      break;
     case XCB_CONFIGURE_NOTIFY: {
 //#ifdef EVENT_NOISE
-    	clog << "XCB_CONFIGURE_NOTIFY" << endl;
+    	//clog << "XCB_CONFIGURE_NOTIFY" << endl;
 //#endif
     	window = XCBWindow::matchEvent(event);
     	xcb_configure_notify_event_t* ev = (xcb_configure_notify_event_t*)event;
-    	clog << "x " << ev->x << " y " << ev->y << " w " << ev->width << " h " << ev->height << endl;
+    	//clog << "x " << ev->x << " y " << ev->y << " w " << ev->width << " h " << ev->height << endl;
     	window->onConfigure(ev->x, ev->y, ev->width, ev->height);
     }
     break;
