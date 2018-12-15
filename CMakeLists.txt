@@ -27,9 +27,12 @@ set_property(TARGET bit PROPERTY CXX_STANDARD 14)
 
 find_package(SDL2 REQUIRED)
 include_directories(${SDL2_INCLUDE_DIRS})
+#find_package(SDL2_image REQUIRED)
+#include_directories(${SDL2_IMAGE_INCLUDE_DIR})
+pkg_check_Modules(SDL2_IMAGE REQUIRED SDL2_image)
 
-target_link_libraries(sdlbit ${SDL2_LIBRARIES})
-target_include_directories(sdlbit PUBLIC ${SDL2_INCLUDE_DIRS})
+target_link_libraries(sdlbit ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
+target_include_directories(sdlbit PUBLIC ${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS})
 
 add_executable(rp respathtest.cpp)
 target_link_libraries(rp ${SDL2_LIBRARIES})
