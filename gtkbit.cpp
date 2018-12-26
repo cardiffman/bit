@@ -7,6 +7,7 @@
 #include <gtk/gtk.h>
 #include <glib.h>
 #include <stdio.h>
+#include <string.h>
 
 static void hello(GtkWidget* w)
 {
@@ -101,7 +102,10 @@ bool loadImages()
 	for (unsigned i=0; i<numFiles; ++i)
 	{
 		GError* err = NULL;
-		auto image = gdk_pixbuf_new_from_file(files[i], &err);
+		char buf[350];
+		strcpy(buf, "/home/menright/wip/bits/res/Lesson5/");
+		strcat(buf, files[i]);
+		auto image = gdk_pixbuf_new_from_file(buf, &err);
 		if (!image)
 		{
 		    g_printerr("%s\n", err->message);
@@ -170,6 +174,7 @@ int main(int argc, char** argv)
 	gtk_window_set_default_size(GTK_WINDOW(window), 1280, 720);
 	gtk_window_set_position(GTK_WINDOW(window),GTK_WIN_POS_CENTER);
 
+	GTKProject::loadImages();
 	GTKProject::renderContainers(GTK_WIDGET(window));
 
 	gtk_widget_show_all(window);
