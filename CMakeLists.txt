@@ -30,14 +30,26 @@ include_directories(${SDL2_INCLUDE_DIRS})
 #find_package(SDL2_image REQUIRED)
 #include_directories(${SDL2_IMAGE_INCLUDE_DIR})
 pkg_check_Modules(SDL2_IMAGE REQUIRED SDL2_image)
+#find_package(SDL2_ttf REQUIRED)
+#include_directories(${SDL2_TTF_INCLUDE_DIR})
+pkg_check_Modules(SDL2_TTF REQUIRED SDL2_ttf)
 
-target_link_libraries(sdlbit ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES})
-target_include_directories(sdlbit PUBLIC ${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS})
+target_link_libraries(sdlbit ${SDL2_LIBRARIES} ${SDL2_IMAGE_LIBRARIES} ${SDL2_TTF_LIBRARIES})
+target_include_directories(sdlbit PUBLIC ${SDL2_INCLUDE_DIRS} ${SDL2_IMAGE_INCLUDE_DIRS} ${SDL2_TTF_INCLUDE_DIRS})
 
 add_executable(rp respathtest.cpp)
 target_link_libraries(rp ${SDL2_LIBRARIES})
 target_include_directories(rp PUBLIC ${SDL2_INCLUDE_DIRS})
 
+add_executable(layerguy layerguy.cpp)
+target_link_libraries(layerguy ${SDL2_LIBRARIES}  ${SDL2_IMAGE_LIBRARIES})
+target_include_directories(rp PUBLIC ${SDL2_INCLUDE_DIRS})
+
 if (NOT ${PROJECT_SOURCE_DIR} STREQUAL ${CMAKE_CURRENT_BINARY_DIR})
 	file(COPY "${PROJECT_SOURCE_DIR}/res" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 endif()
+
+find_package(GTK2 2.0 REQUIRED gtk)
+add_executable(gtkbit gtkbit.cpp)
+target_link_libraries(gtkbit ${GTK2_LIBRARIES})
+target_include_directories(gtkbit PUBLIC ${GTK2_INCLUDE_DIRS})
