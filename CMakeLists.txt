@@ -15,8 +15,6 @@ pkg_check_Modules(SDL2_IMAGE REQUIRED SDL2_image)
 
 pkg_check_Modules(SDL2_TTF REQUIRED SDL2_ttf)
 
-pkg_check_Modules(PNG REQUIRED libpng)
-
 find_package(GTK2 2.0 REQUIRED gtk)
 
 pkg_check_Modules(GTKGL REQUIRED gtkglext-1.0)
@@ -25,6 +23,10 @@ message(STATUS ${GTKGL_INCLUDE_DIRS})
 else()
 message(STATUS GTKGL NOT FOUND)
 endif()
+
+pkg_check_Modules(PNG REQUIRED libpng)
+
+pkg_check_Modules(JPEG REQUIRED libjpeg)
 
 add_subdirectory(bit)
 
