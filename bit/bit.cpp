@@ -567,15 +567,148 @@ double get_time()
 	clock_gettime(CLOCK_REALTIME, &ts);
 	return ts.tv_sec + (ts.tv_nsec*1e-9);
 }
+
+struct JSValue
 {
+	virtual ~JSValue() {}
+	virtual std::string to_string() const = 0;
+};
+struct JSInt : public JSValue
+{
+	int value;
+	JSInt(int value): value(value){}
+	virtual std::string to_string() const {
+		return std::to_string(value);
 	}
+};
+struct JSBool : public JSValue
+{
+	bool value;
+	JSBool(bool value): value(value){}
+	virtual std::string to_string() const {
+		return std::to_string(value);
 	}
+};
+struct JSNull : public JSValue
+{
+	virtual std::string to_string() const {
+		return "null";
+	}
+};
+struct JSString : public JSValue
+{
+	std::string value;
+	JSString(const std::string& value): value(value){}
+	virtual std::string to_string() const {
+		return value;
+	}
+};
+struct JSObject : public JSValue
+{
+	std::map<std::string, JSValue*> value;
+	virtual std::string to_string() const {
+		std::ostringstream os;
+		os << "{";
+		bool comma = false;
+		for (auto m : value)
 		{
+			if (comma)
+				os << ',';
+			os << m.first << ":" << m.second->to_string();
+			comma = true;
 		}
+		os << "}\n";
+		return os.str();
 	}
+	std::string key;
+};
+struct JSArray : public JSValue
+{
+	std::vector<JSValue*> value;
+	virtual std::string to_string() const {
+		std::ostringstream os;
+		os << "[";
+		bool comma = false;
+		for (auto m : value)
+		{
+			if (comma)
+				os << ',';
+			os << m->to_string();
+			comma = true;
+		}
+		os << "]\n";
+		return os.str();
 	}
+};
+struct build_context
+{
+	JSValue* value;
+	int remaining;
+	std::string key;
+};
+JSValue* root;
+void print_object(JSValue* obj)
+{
+	cout << obj->to_string() << endl;
 }
 #include "jsmn.h"
+JSValue* read(const char* jstext, jsmntok_t*& ptoken)
+{
+	JSArray* array;
+	JSObject* object;
+	JSString* str;
+	JSNull* null;
+	JSInt* num;
+	JSBool* truth;
+	unsigned expected;
+	switch (ptoken->type)
+	{
+	case JSMN_PRIMITIVE:
+		switch (jstext[ptoken->start])
+		{
+		case 'n':
+			null = new JSNull();
+			ptoken++;
+			return null;
+		case 't': case 'f':
+			truth = new JSBool(jstext[ptoken->start]=='t');
+			ptoken++;
+			return truth;
+		default:
+			num = new JSInt(std::stod(std::string(jstext+ptoken->start, ptoken->end-ptoken->start)));
+			ptoken++;
+			return num;
+		}
+		break;
+	case JSMN_STRING:
+		str = new JSString(std::string(jstext+ptoken->start, ptoken->end-ptoken->start));
+		ptoken++;
+		return str;
+	case JSMN_ARRAY:
+		array = new JSArray();
+		expected = ptoken->size;
+		ptoken++;
+		for (unsigned i=0; i<expected; ++i)
+			array->value.push_back(read(jstext, ptoken));
+		//cout << "array: "; print_object(array); cout << endl;
+		return array;
+	case JSMN_OBJECT:
+		object = new JSObject();
+		expected = ptoken->size;
+		ptoken++;
+		//cout << "obj: expect " << expected << endl;
+		for (unsigned i=0; i<expected; ++i)
+		{
+			JSValue* jskey = read(jstext, ptoken);
+			std::string key = dynamic_cast<JSString*>(jskey)->value;
+			JSValue* value = read(jstext,ptoken);
+			object->value[key] = value;
+		}
+		//cout << "obj: "; print_object(object); cout << endl;
+		return object;
+	}
+	return new JSNull();
+}
 void parse_json(const char* file)
 {
 	jsmn_parser jp;
@@ -589,13 +722,56 @@ void parse_json(const char* file)
 	jsmntok_t* tokens = new jsmntok_t[tokes];
 	jsmn_init(&jp);
 	jsmn_parse(&jp, jstext, jslength, tokens, tokes);
+#if 0
+	cout << "js: chars provided " << jslength << endl;
 	for (int i=0; i<tokes; ++i)
 	{
+		const char* types[] = {
+				"JSMN_UNDEFINED",
+				"JSMN_OBJECT",
+				"JSMN_ARRAY",
+				"JSMN_STRING",
+				"JSMN_PRIMITIVE"
+		};
+		cout << i << ": type=" << types[tokens[i].type] << " start: " << tokens[i].start << " end: " << tokens[i].end
+			<< " size: " << tokens[i].size;
+		switch (tokens[i].type)
+		{
+		case JSMN_STRING:
+			if (tokens[i].end - tokens[i].start < 20 || (tokens[i].end - tokens[i].start < 100))
+			{
+				cout << " \"" << std::string(jstext+tokens[i].start, tokens[i].end-tokens[i].start) << '"';
+			}
+			cout << endl;
+			break;
+		case JSMN_PRIMITIVE:
+			cout << " " << std::string(jstext+tokens[i].start, tokens[i].end-tokens[i].start);
+			cout << endl;
+			break;
+		case JSMN_ARRAY:
+			cout << endl;
+			break;
+		case JSMN_OBJECT:
+			cout << endl;
+			break;
+		default:
+			cout << endl;
+			break;
+		}
 	}
+#endif
 	close(fd);
+	root = read(jstext, tokens);
+	print_object(root);
 }
 int main(int, char**argv)
 {
+	try {
+		parse_json(argv[1]);
+	} catch (const char* ex) {
+		cout << ex << endl;
+		return 1;
+	}
 	scene.assets[1].image.mem = new uint8_t[720*1280*4];
 	scene.assets[1].image.rowbytes = 1280*4;
 	scene.assets[1].image.dims = RectSize(1280,720);
