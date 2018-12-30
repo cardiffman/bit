@@ -44,23 +44,35 @@ Scene scene = {
 		{ 1, {NULL, {1280, 720}, 1280*4 }},
 		{ 2, {NULL, {100, 100}, 100*4 }},
 		{ 3, 0},
+		{ 4, 0},
+		{ 5, 0},
+		{ 6, 0},
+		{ 7, 0},
+		{ 8, 0},
+		{ 9, 0},
+		{10, 0},
+		{11, 0},
+		{12, 0},
+		{13, 0},
+		{14, 0},
+		{15, 0},
 		},
 		{
 				{ {0,0,0,0}, 0, 0, 0 },
-				{ {0, 0, 1280, 720}, 1, ID_NULL, ID_NULL, 0xff808080 },
-				{ {0, 0, 100, 100}, 2, ID_NULL, ID_NULL, 0xffff0000},
-				{ {100,100,1080,520}, 3, ID_NULL, 1,  },
-				{ {  0, 0, 100, 100}, 4, 3, },
-				{ {100, 0, 100, 100}, 5, 3,      2, },
-				{ {200, 0, 100, 100}, 6, 3,      2, },
-				{ {300, 0, 100, 100}, 7, 3,      2, },
-				{ {400, 0, 100, 100}, 8, 3,      2, },
-				{ {500, 0, 100, 100}, 9, 3,      2, },
-				{ {600, 0, 100, 100},10, 3,      2, },
-				{ {700, 0, 100, 100},11, 3,     2, },
-				{ {800, 0, 100, 100},12, 3,     2, },
-				{ {900, 0, 100, 100},13, 3,     2, },
-				{ {1000, 0, 100, 100},14, 3,     2, },
+				{ {  0,  0, 1280, 720}, 1, ID_NULL, ID_NULL, 0xff808080 },
+				{ {  0,  0,  100, 100}, 2, ID_NULL, 3},//ID_NULL, 0xffff0000},
+				{ {100,100, 1080, 520}, 3, ID_NULL, 1,  },
+				{ {  0,  0,  127, 190}, 4, 3,       3},
+				{ {127,  0,  127, 190}, 5, 3,       4, },
+				{ {254,  0,  127, 190}, 6, 3,       5, },
+				{ {381,  0,  127, 190}, 7, 3,      6, },
+				{ {508,  0, 127, 190}, 8, 3,      7, },
+				{ {635,  0, 127, 190}, 9, 3,      8, },
+				{ {762,  0, 127, 190},10, 3,      9, },
+				{ {889,  0, 127, 190},11, 3,     10, },
+				{ {1016, 0, 127, 190},12, 3,     11, },
+				{ {1143, 0, 127, 190},13, 3,     12, },
+				{ {1270, 0, 127, 190},14, 3,     2, },
 		}
 };
 
@@ -555,63 +567,14 @@ double get_time()
 	clock_gettime(CLOCK_REALTIME, &ts);
 	return ts.tv_sec + (ts.tv_nsec*1e-9);
 }
-double timeProcessing(double& anim_last, bitwindow* win)
 {
-	static double anim_next = 0;
-	double anim_now = get_time();
-
-	static int dx=60;
-	static int dy=60;
-	double deltat = anim_now-anim_last;
-	//cout << "Delta t: " << deltat << endl;
-	anim_last=get_time();
-	anim_next = anim_last + 1.0/60;
-	//cout << "Container 2 x " << scene.glyphs[2].area.x << " y " << scene.glyphs[2].area.y << " " << deltat << endl;
-	scene.containers[2].area.x+=dx * deltat;
-	scene.containers[2].area.y+=dy * deltat;
-	if (scene.containers[2].area.x+scene.containers[2].area.width > 1280)
-	{
-		cout << "X Flip: " << scene.containers[2].area.x << ' ' << scene.containers[2].area.x+scene.containers[2].area.width << ' ' << dx << endl;
-		int overage = scene.containers[2].area.x+scene.containers[2].area.width - 1280;
-		cout << "X Flip overage " << overage << endl;
-		scene.containers[1].area.x = 1280 - scene.containers[2].area.width - overage;
-		dx=-60;
-		cout << "X Flip: " << scene.containers[2].area.x << ' ' << scene.containers[2].area.x+scene.containers[2].area.width << ' ' << dx << endl;
 	}
-	else if (scene.containers[2].area.x < 0)
-	{
-		cout << "X Flip: " << scene.containers[2].area.x << ' ' << dx << endl;
-		int overage = -scene.containers[2].area.x;
-		scene.containers[2].area.x = 0 + overage;
-		dx=60;
-		cout << "X Flip: " << scene.containers[2].area.x << ' ' << dx << endl;
 	}
-	if (scene.containers[2].area.y+scene.containers[2].area.height > 720)
-	{
-		cout << "Y Flip 720: " << scene.containers[2].area.y << ' ' << dy << endl;
-		int overage = scene.containers[2].area.y+scene.containers[2].area.height - 720;
-		cout << "Y Flip overage " << overage << endl;
-		scene.containers[2].area.y = 720 - scene.containers[2].area.height - overage;
-		if (scene.containers[2].area.y+scene.containers[2].area.height > 720)
 		{
-			cout << "Flipped but still bad?? " << scene.containers[2].area.y << ' ' << scene.containers[2].area.y+scene.containers[2].area.height << endl;
 		}
-		dy=-60;
-		cout << "Y Flip 720: " << scene.containers[2].area.y << ' ' << dy << endl;
 	}
-	else if (scene.containers[2].area.y < 0)
-	{
-		cout << "Y Flip: " << scene.containers[2].area.y << ' ' << dy << endl;
-		int overage = -scene.containers[2].area.y;
-		scene.containers[2].area.y = 0 + overage;
-		dy=-dy;
-		cout << "Y Flip: " << scene.containers[2].area.y << ' ' << dy << endl;
 	}
-	draw_scene();
-	win->repaint();
-	return anim_next;
 }
-
 #include "jsmn.h"
 void parse_json(const char* file)
 {
@@ -628,19 +591,11 @@ void parse_json(const char* file)
 	jsmn_parse(&jp, jstext, jslength, tokens, tokes);
 	for (int i=0; i<tokes; ++i)
 	{
-		cout << i << ": type=" << tokens[i].type << " start: " << tokens[i].start << " end: " << tokens[i].end
-			<< " size: " << tokens[i].size << endl;//<< " " << std::string(tokens[i].end-tokens[i].start, jstext+tokens[i].start);
 	}
 	close(fd);
 }
 int main(int, char**argv)
 {
-	//auto file = std::fstream(argv[1], std::ios::in | std::ios::binary);
-	//Json::Value root;
-	//file >> root;
-	//cout << root << std::endl;
-	parse_json(argv[1]);
-
 	scene.assets[1].image.mem = new uint8_t[720*1280*4];
 	scene.assets[1].image.rowbytes = 1280*4;
 	scene.assets[1].image.dims = RectSize(1280,720);
