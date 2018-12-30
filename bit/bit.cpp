@@ -652,7 +652,7 @@ void print_object(JSValue* obj)
 	cout << obj->to_string() << endl;
 }
 #include "jsmn.h"
-JSValue* read(const char* jstext, jsmntok_t*& ptoken)
+JSValue* jsread(const char* jstext, jsmntok_t*& ptoken)
 {
 	JSArray* array;
 	JSObject* object;
@@ -689,7 +689,7 @@ JSValue* read(const char* jstext, jsmntok_t*& ptoken)
 		expected = ptoken->size;
 		ptoken++;
 		for (unsigned i=0; i<expected; ++i)
-			array->value.push_back(read(jstext, ptoken));
+			array->value.push_back(jsread(jstext, ptoken));
 		//cout << "array: "; print_object(array); cout << endl;
 		return array;
 	case JSMN_OBJECT:
@@ -699,9 +699,9 @@ JSValue* read(const char* jstext, jsmntok_t*& ptoken)
 		//cout << "obj: expect " << expected << endl;
 		for (unsigned i=0; i<expected; ++i)
 		{
-			JSValue* jskey = read(jstext, ptoken);
+			JSValue* jskey = jsread(jstext, ptoken);
 			std::string key = dynamic_cast<JSString*>(jskey)->value;
-			JSValue* value = read(jstext,ptoken);
+			JSValue* value = jsread(jstext,ptoken);
 			object->value[key] = value;
 		}
 		//cout << "obj: "; print_object(object); cout << endl;
@@ -709,22 +709,29 @@ JSValue* read(const char* jstext, jsmntok_t*& ptoken)
 	}
 	return new JSNull();
 }
-void parse_json(const char* file)
+bool tokenize_json(const char* file, std::vector<jsmntok_t>& tokens, std::string& jstext)
 {
 	jsmn_parser jp;
 	jsmn_init(&jp);
 	int fd = open(file, O_RDONLY);
 	int jslength = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_SET);
-	char* jstext = new char[jslength+1];
-	read(fd, jstext, jslength);
-	int tokes = jsmn_parse(&jp, jstext, jslength, NULL, 0);
-	jsmntok_t* tokens = new jsmntok_t[tokes];
+	jstext.resize(jslength);
+	read(fd, &jstext[0], jslength);
+	int tokes = jsmn_parse(&jp, jstext.data(), jslength, NULL, 0);
+	tokens.resize(tokes);
 	jsmn_init(&jp);
-	jsmn_parse(&jp, jstext, jslength, tokens, tokes);
-#if 0
-	cout << "js: chars provided " << jslength << endl;
-	for (int i=0; i<tokes; ++i)
+	jsmn_parse(&jp, jstext.data(), jslength, tokens.data(), tokes);
+	close(fd);
+	return true;
+}
+void parse_json(const char* file)
+{
+	std::vector<jsmntok_t> tokens;
+	std::string jstext;
+	tokenize_json(file, tokens, jstext);
+	cout << "js: chars provided " << jstext.size() << endl;
+	for (int i=0; i<tokens.size(); ++i)
 	{
 		const char* types[] = {
 				"JSMN_UNDEFINED",
@@ -740,12 +747,12 @@ void parse_json(const char* file)
 		case JSMN_STRING:
 			if (tokens[i].end - tokens[i].start < 20 || (tokens[i].end - tokens[i].start < 100))
 			{
-				cout << " \"" << std::string(jstext+tokens[i].start, tokens[i].end-tokens[i].start) << '"';
+				cout << " \"" << jstext.substr(tokens[i].start, tokens[i].end-tokens[i].start) << '"';
 			}
 			cout << endl;
 			break;
 		case JSMN_PRIMITIVE:
-			cout << " " << std::string(jstext+tokens[i].start, tokens[i].end-tokens[i].start);
+			cout << " " << jstext.substr(tokens[i].start, tokens[i].end-tokens[i].start);
 			cout << endl;
 			break;
 		case JSMN_ARRAY:
@@ -759,9 +766,8 @@ void parse_json(const char* file)
 			break;
 		}
 	}
-#endif
-	close(fd);
-	root = read(jstext, tokens);
+	jsmntok_t* ptokens = tokens.data();
+	root = jsread(&jstext[0], ptokens);
 	print_object(root);
 }
 int main(int, char**argv)
