@@ -505,6 +505,49 @@ int clip_area_to_heirarchy(const Container& container, Area& draw, Area& screen)
 	}
 	return res;
 }
+void draw_container(const Container& g)
+{
+	if (g.children)
+	{
+		cout << "Container " << g.id << " has children, they will be drawn" << endl;
+		return;
+	}
+
+	Area draw, container_screen;
+	if (CLIP_OUT == clip_container_to_heirarchy(g, draw, container_screen))
+	{
+		cout << "Container " << g.id << " clipped out" << endl;
+		return;
+	}
+	if (g.asset_id == ID_NULL)
+	{
+		cout << "Filling color " << g.color << " for container " << g.id << " at " << g.area.x << "," << g.area.y << endl;
+		fill(g.color, screen, draw);
+	}
+	else
+	{
+		Area asset_draw, asset_screen;
+		Asset& asset = scene.assets[g.asset_id];
+		Area asset_area = Area(0,0,asset.image.dims.width,asset.image.dims.height);
+		asset_draw = asset_area;
+		if (CLIP_OUT == clip_area_to_heirarchy(g, asset_draw, asset_screen))
+		{
+			cout << "Container " << g.id << " asset " << asset.id << " clipped out" << endl;
+			return;
+		}
+		asset_area;
+		cout << "Drawing asset " << asset.id << " for container " << g.id << endl;
+		if (g.area.width == asset_area.width && g.area.height == asset_area.height)
+		blit(asset.image
+				, asset_area
+				, screen
+				, g.area
+				);
+		else
+			stretch(asset.image, asset_area, screen, g.area);
+	}
+
+}
 void draw_scene()
 {
 	cout << "Drawing" << endl;
@@ -520,46 +563,7 @@ void draw_scene()
 		Container& g = scene.containers[ig];
 		if (check_parent_loop(g))
 			continue;
-
-		if (g.children)
-		{
-			cout << "Container " << g.id << " has children, they will be drawn" << endl;
-			continue;
-		}
-
-		Area draw, container_screen;
-		if (CLIP_OUT == clip_container_to_heirarchy(g, draw, container_screen))
-		{
-			cout << "Container " << g.id << " clipped out" << endl;
-			continue;
-		}
-		if (g.asset_id == ID_NULL)
-		{
-			cout << "Filling color " << g.color << " for container " << g.id << " at " << g.area.x << "," << g.area.y << endl;
-			fill(g.color, screen, draw);
-		}
-		else
-		{
-			Area asset_draw, asset_screen;
-			Asset& asset = scene.assets[g.asset_id];
-			Area asset_area = Area(0,0,asset.image.dims.width,asset.image.dims.height);
-			asset_draw = asset_area;
-			if (CLIP_OUT == clip_area_to_heirarchy(g, asset_draw, asset_screen))
-			{
-				cout << "Container " << g.id << " asset " << asset.id << " clipped out" << endl;
-				continue;
-			}
-			asset_area;
-			cout << "Drawing asset " << asset.id << " for container " << g.id << endl;
-			if (g.area.width == asset_area.width && g.area.height == asset_area.height)
-			blit(asset.image
-					, asset_area
-					, screen
-					, g.area
-					);
-			else
-				stretch(asset.image, asset_area, screen, g.area);
-		}
+		draw_container(g);
 	}
 }
 double get_time()
@@ -568,214 +572,8 @@ double get_time()
 	clock_gettime(CLOCK_REALTIME, &ts);
 	return ts.tv_sec + (ts.tv_nsec*1e-9);
 }
+#include "parse_json_dom.h"
 
-struct JSValue
-{
-	virtual ~JSValue() {}
-	virtual std::string to_string() const = 0;
-};
-struct JSInt : public JSValue
-{
-	int value;
-	JSInt(int value): value(value){}
-	virtual std::string to_string() const {
-		return std::to_string(value);
-	}
-};
-struct JSBool : public JSValue
-{
-	bool value;
-	JSBool(bool value): value(value){}
-	virtual std::string to_string() const {
-		return std::to_string(value);
-	}
-};
-struct JSNull : public JSValue
-{
-	virtual std::string to_string() const {
-		return "null";
-	}
-};
-struct JSString : public JSValue
-{
-	std::string value;
-	JSString(const std::string& value): value(value){}
-	virtual std::string to_string() const {
-		return value;
-	}
-};
-struct JSObject : public JSValue
-{
-	std::map<std::string, JSValue*> value;
-	virtual std::string to_string() const {
-		std::ostringstream os;
-		os << "{";
-		bool comma = false;
-		for (auto m : value)
-		{
-			if (comma)
-				os << ',';
-			os << m.first << ":" << m.second->to_string();
-			comma = true;
-		}
-		os << "}\n";
-		return os.str();
-	}
-	std::string key;
-};
-struct JSArray : public JSValue
-{
-	std::vector<JSValue*> value;
-	virtual std::string to_string() const {
-		std::ostringstream os;
-		os << "[";
-		bool comma = false;
-		for (auto m : value)
-		{
-			if (comma)
-				os << ',';
-			os << m->to_string();
-			comma = true;
-		}
-		os << "]\n";
-		return os.str();
-	}
-};
-struct build_context
-{
-	JSValue* value;
-	int remaining;
-	std::string key;
-};
-JSValue* root;
-void print_object(JSValue* obj)
-{
-	cout << obj->to_string() << endl;
-}
-#include "jsmn.h"
-template <typename P>
-JSValue* jsread(const char* jstext, P& ptoken)
-{
-	JSArray* array;
-	JSObject* object;
-	JSString* str;
-	JSNull* null;
-	JSInt* num;
-	JSBool* truth;
-	unsigned expected;
-	switch (ptoken->type)
-	{
-	case JSMN_PRIMITIVE:
-		switch (jstext[ptoken->start])
-		{
-		case 'n':
-			null = new JSNull();
-			ptoken++;
-			return null;
-		case 't': case 'f':
-			truth = new JSBool(jstext[ptoken->start]=='t');
-			ptoken++;
-			return truth;
-		default:
-			num = new JSInt(std::stod(std::string(jstext+ptoken->start, ptoken->end-ptoken->start)));
-			ptoken++;
-			return num;
-		}
-		break;
-	case JSMN_STRING:
-		str = new JSString(std::string(jstext+ptoken->start, ptoken->end-ptoken->start));
-		ptoken++;
-		return str;
-	case JSMN_ARRAY:
-		array = new JSArray();
-		expected = ptoken->size;
-		ptoken++;
-		for (unsigned i=0; i<expected; ++i)
-			array->value.push_back(jsread(jstext, ptoken));
-		//cout << "array: "; print_object(array); cout << endl;
-		return array;
-	case JSMN_OBJECT:
-		object = new JSObject();
-		expected = ptoken->size;
-		ptoken++;
-		//cout << "obj: expect " << expected << endl;
-		for (unsigned i=0; i<expected; ++i)
-		{
-			JSValue* jskey = jsread(jstext, ptoken);
-			std::string key = dynamic_cast<JSString*>(jskey)->value;
-			JSValue* value = jsread(jstext,ptoken);
-			object->value[key] = value;
-		}
-		//cout << "obj: "; print_object(object); cout << endl;
-		return object;
-	}
-	return new JSNull();
-}
-bool tokenize_json(const char* file, std::vector<jsmntok_t>& tokens, std::string& jstext)
-{
-	jsmn_parser jp;
-	jsmn_init(&jp);
-	int fd = open(file, O_RDONLY);
-	int jslength = lseek(fd, 0, SEEK_END);
-	lseek(fd, 0, SEEK_SET);
-	jstext.resize(jslength);
-	read(fd, &jstext[0], jslength);
-	int tokes = jsmn_parse(&jp, jstext.data(), jslength, NULL, 0);
-	tokens.resize(tokes);
-	jsmn_init(&jp);
-	jsmn_parse(&jp, jstext.data(), jslength, tokens.data(), tokes);
-	close(fd);
-	return true;
-}
-void dump_jstokens(const std::vector<jsmntok_t>& tokens, const std::string& jstext)
-{
-	for (int i=0; i<tokens.size(); ++i)
-	{
-		const char* types[] = {
-				"JSMN_UNDEFINED",
-				"JSMN_OBJECT",
-				"JSMN_ARRAY",
-				"JSMN_STRING",
-				"JSMN_PRIMITIVE"
-		};
-		cout << i << ": type=" << types[tokens[i].type] << " start: " << tokens[i].start << " end: " << tokens[i].end
-			<< " size: " << tokens[i].size;
-		switch (tokens[i].type)
-		{
-		case JSMN_STRING:
-			if (tokens[i].end - tokens[i].start < 20 || (tokens[i].end - tokens[i].start < 100))
-			{
-				cout << " \"" << jstext.substr(tokens[i].start, tokens[i].end-tokens[i].start) << '"';
-			}
-			cout << endl;
-			break;
-		case JSMN_PRIMITIVE:
-			cout << " " << jstext.substr(tokens[i].start, tokens[i].end-tokens[i].start);
-			cout << endl;
-			break;
-		case JSMN_ARRAY:
-			cout << endl;
-			break;
-		case JSMN_OBJECT:
-			cout << endl;
-			break;
-		default:
-			cout << endl;
-			break;
-		}
-	}
-}
-void parse_json(const char* file)
-{
-	std::vector<jsmntok_t> tokens;
-	std::string jstext;
-	tokenize_json(file, tokens, jstext);
-	cout << "js: chars provided " << jstext.size() << endl;
-	dump_jstokens(tokens, jstext);
-	auto ptokens = tokens.begin();
-	root = jsread(&jstext[0], ptokens);
-	print_object(root);
-}
 std::vector<Container> nc;
 std::vector<Asset> na;
 std::map<std::string,Asset> named_a;
@@ -1048,6 +846,7 @@ void parse_containers(const char* file)
 		if (g.parent_id != ID_NULL)
 			scene.containers[g.parent_id].children++;
 	}
+	na.insert(na.begin(), Asset());
 	print_scene();
 	for (auto u : urls_by_id)
 	{
