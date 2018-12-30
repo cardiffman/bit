@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.7)
 project(bit C CXX)
 
-add_executable(bit bit.cpp parse_json_dom.cpp bitwindow.cpp)
+add_executable(bit bit.cpp parse_json_utils.cpp parse_json_dom.cpp bitwindow.cpp)
 
 set_property(TARGET bit PROPERTY CXX_STANDARD 14)
 

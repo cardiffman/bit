@@ -9,9 +9,7 @@
 #define BIT_PARSE_JSON_DOM_H_
 
 
-#include "jsmn.h"
-#include <vector>
-#include <string>
+#include "parse_json_utils.h"
 #include <map>
 
 struct JSValue
@@ -53,8 +51,6 @@ struct JSArray : public JSValue
 	virtual std::string to_string() const;
 };
 
-bool tokenize_json(const char* file, std::vector<jsmntok_t>& tokens, std::string& jstext);
-void dump_jstokens(const std::vector<jsmntok_t>& tokens, const std::string& jstext);
 JSValue* parse_json(const char* file);
 void print_object(JSValue* obj);
 
