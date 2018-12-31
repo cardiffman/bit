@@ -19,11 +19,6 @@ public:
 private:
 	bitwindow(const Rect& rect);
 };
-struct Area {
-	Area() : x(), y(), width(), height() {}
-	Area(int x, int y, int width, int height) : x(x), y(y), width(width), height(height) {}
-	int x; int y; int width; int height;
-};
 #include "bitbuffer.h"
 
 #endif /* BITWINDOW_H_ */

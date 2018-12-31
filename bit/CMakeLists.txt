@@ -3,6 +3,7 @@ project(bit C CXX)
 
 add_executable(bit
 	bit.cpp
+	scene_builder.cpp
 	parse_json_utils.cpp
 	parse_json_dom.cpp
 	read_png_file.cpp
