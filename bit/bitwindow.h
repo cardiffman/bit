@@ -24,14 +24,6 @@ struct Area {
 	Area(int x, int y, int width, int height) : x(x), y(y), width(width), height(height) {}
 	int x; int y; int width; int height;
 };
-struct RectSize {
-	RectSize() : width(), height() {}
-	RectSize(int width, int height) : width(width), height(height) {}
-	int width; int height;
-};
-struct BitBuffer {
-	uint8_t* mem; RectSize dims; unsigned rowbytes;
-};
-
+#include "bitbuffer.h"
 
 #endif /* BITWINDOW_H_ */
