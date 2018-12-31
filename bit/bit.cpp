@@ -284,6 +284,9 @@ void draw_container(const Container& g)
 	if (CLIP_OUT == clip_container_to_heirarchy(g, draw, container_screen))
 	{
 		cout << "Container " << g.id << " clipped out" << endl;
+		auto parent = parent_container(&g);
+		cout << " " << g.area.x << ',' << g.area.y << ',' << g.area.width << ',' << g.area.height << endl;
+		cout << " " << parent->area.x << ',' << parent->area.y << ',' << parent->area.width << ',' << parent->area.height << endl;
 		return;
 	}
 	if (g.asset_id == ID_NULL)
