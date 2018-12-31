@@ -27,15 +27,11 @@ void abort_(const char * s, ...)
         abort();
 }
 
-static int x;
-static int y;
-
-static uint32_t width, height;
-
-
 void read_png_file(const char* file_name, BitBuffer* bits)
 {
 	unsigned char header[8];    // 8 is the maximum size that can be checked
+	uint32_t width, height;
+	int y;
 
 	/* open file and test for it being a png */
 	FILE *fp = fopen(file_name, "rb");
