@@ -72,12 +72,14 @@ void blit(BitBuffer& src
 		, BitBuffer& dst
 		, const Area& dstArea)
 {
+	uint32_t* dstrow = (uint32_t*)(dst.mem + dstArea.y*dst.rowbytes);
+	uint32_t* srcrow = (uint32_t*)(src.mem + srcArea.y*src.rowbytes);
 	for (unsigned y = 0; y<srcArea.height; y++) {
-		uint32_t* dstrow = (uint32_t*)(dst.mem + (dstArea.y+y)*dst.rowbytes);
-		uint32_t* srcrow = (uint32_t*)(src.mem + (srcArea.y+y)*src.rowbytes);
 		for (unsigned x = 0; x<srcArea.width; x++) {
 			dstrow[x+dstArea.x] = srcrow[x+srcArea.x];
 		}
+		dstrow = (uint32_t*)(((uint8_t*)dstrow)+dst.rowbytes);
+		srcrow = (uint32_t*)(((uint8_t*)srcrow)+src.rowbytes);
 	}
 }
 void stretch(BitBuffer& src
