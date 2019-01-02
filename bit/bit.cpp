@@ -220,6 +220,11 @@ int clip_container_to_parents(const Container& container, Area& draw)
 	}
 	return res;
 }
+std::ostream& operator <<(std::ostream& out, const Area& diag)
+{
+	out << diag.x << ',' << diag.y << ',' << diag.width << ',' << diag.height;
+	return out;
+}
 int clip_container_to_heirarchy(const Container& container, Area& draw, Area& screen)
 {
 	draw = container.area;
@@ -228,13 +233,15 @@ int clip_container_to_heirarchy(const Container& container, Area& draw, Area& sc
 	int res = CLIP_IN;
 	while (parent)
 	{
-		res = clip_area_to_area(parent->area, draw, draw);
-		if (res == CLIP_OUT)
-			return CLIP_OUT;
 		draw.x += parent->area.x;
 		draw.y += parent->area.y;
 		screen.x += parent->area.x;
 		screen.y += parent->area.y;
+		res = clip_area_to_area(parent->area, draw, draw);
+		if (res == CLIP_OUT)
+		{
+			return CLIP_OUT;
+		}
 		parent = parent_container(parent);
 	}
 	res = clip_area_to_area(Area(0,0,1280,720), draw, draw);
@@ -254,16 +261,42 @@ int clip_area_to_heirarchy(const Container& container, Area& draw, Area& screen)
 	int res = CLIP_IN;
 	while (parent)
 	{
-		res = clip_area_to_area(parent->area, draw, draw);
-		if (res == CLIP_OUT)
-			return CLIP_OUT;
 		draw.x += parent->area.x;
 		draw.y += parent->area.y;
 		screen.x += parent->area.x;
 		screen.y += parent->area.y;
+		res = clip_area_to_area(parent->area, draw, draw);
+		if (res == CLIP_OUT)
+		{
+			return CLIP_OUT;
+		}
 		parent = parent_container(parent);
 	}
 	return res;
+}
+void make_screen_rect(const Container& container, Area& screen)
+{
+	screen = container.area;
+	auto parent = parent_container(&container);
+	while (parent)
+	{
+		screen.x += parent->area.x;
+		screen.y += parent->area.y;
+		parent = parent_container(parent);
+	}
+}
+void draw_rect(const Area& a, unsigned color)
+{
+	for (unsigned x=0; x<a.width; ++x)
+	{
+		*(uint32_t*)(&screen.mem[a.y*screen.rowbytes+4*(x+a.x)+0])=color;
+		*(uint32_t*)(&screen.mem[(a.y+a.height-1)*screen.rowbytes+4*(x+a.x)+0])=color;
+	}
+	for (unsigned y=0; y<a.height; ++y)
+	{
+		*(uint32_t*)(&screen.mem[(a.y+y)*screen.rowbytes+4*a.x+0])=color;
+		*(uint32_t*)(&screen.mem[(a.y+y)*screen.rowbytes+4*(a.x+a.width-1)+0])=color;
+	}
 }
 void draw_container(const Container& g)
 {
@@ -274,17 +307,16 @@ void draw_container(const Container& g)
 	}
 
 	Area draw, container_screen;
-	if (CLIP_OUT == clip_container_to_heirarchy(g, draw, container_screen))
+	if (CLIP_OUT == clip_container_to_heirarchy(g, draw, container_screen)
+		|| draw.width == 0
+		|| draw.height == 0)
 	{
 		cout << "Container " << g.id << " clipped out" << endl;
-		auto parent = parent_container(&g);
-		cout << " " << g.area.x << ',' << g.area.y << ',' << g.area.width << ',' << g.area.height << endl;
-		cout << " " << parent->area.x << ',' << parent->area.y << ',' << parent->area.width << ',' << parent->area.height << endl;
 		return;
 	}
 	if (g.asset_id == ID_NULL)
 	{
-		cout << "Filling color " << g.color << " for container " << g.id << " at " << g.area.x << "," << g.area.y << endl;
+		cout << "Filling color " << std::hex << g.color << std::dec << " for container " << g.id << " at " << draw << endl;
 		fill(g.color, screen, draw);
 	}
 	else
@@ -299,25 +331,29 @@ void draw_container(const Container& g)
 			return;
 		}
 		asset_area;
-		cout << "Drawing asset " << asset.id << " for container " << g.id << endl;
-		if (g.area.width == asset_area.width && g.area.height == asset_area.height)
-		blit(asset.image
-				, asset_area
-				, screen
-				, g.area
-				);
+		cout << "Drawing asset " << asset.id << " for container " << g.id << " at " << asset_draw << endl;
+		// If the asset area and the container area are equal then
+		// draw 1:1 using the clipping so far.
+		if (g.area.width == asset.image.dims.width && g.area.height == asset.image.dims.height)
+		{
+			blit(asset.image
+					, asset_draw
+					, screen
+					, g.area
+					);
+		}
 		else
-			stretch(asset.image, asset_area, screen, g.area);
+			stretch(asset.image, asset_area, screen, draw);
 	}
 
 }
 void draw_scene()
 {
 	cout << "Drawing" << endl;
-	for (auto g : scene.containers) {
+	for (auto& g : scene.containers) {
 		g.children = 0;
 	}
-	for (auto g : scene.containers) {
+	for (auto& g : scene.containers) {
 		if (g.parent_id != ID_NULL)
 			scene.containers[g.parent_id].children++;
 	}
