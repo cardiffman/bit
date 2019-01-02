@@ -20,17 +20,25 @@ SceneBuilder::SceneBuilder() {
 }
 void SceneBuilder::parse_asset_label(unsigned& id, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
-	++asset_id;
 	// File supplies a label. We define the ID here and map the label to the ID.
-	id = asset_id;
 	if (ptokens->type == JSMN_STRING)
 	{
 		auto asset_label = text.substr(ptokens->start, ptokens->end-ptokens->start);
 		++ptokens;
 		Asset a;
-		a.id = asset_id;
-		na.push_back(a);
-		named_a[asset_label] = a;
+		if (named_a.count(asset_label))
+		{
+			a = named_a[asset_label];
+			id = a.id;
+		}
+		else
+		{
+			++asset_id;
+			id = asset_id;
+			a.id = asset_id;
+			na.push_back(a);
+			named_a[asset_label] = a;
+		}
 		//ids_of_named_assets[a.id] = asset_label;
 	}
 	else
@@ -252,7 +260,7 @@ void SceneBuilder::print_scene()
 	for (auto c : nc)
 	{
 		cout << "{{" << c.area.x <<',' << c.area.y << ',' << c.area.width << ',' << c.area.height <<"}, "
-				<< c.id << ',' << c.parent_id << ',' << c.asset_id << ',' << c.color << '}' << " // " << c.children<< endl;
+				<< c.id << ',' << c.parent_id << ',' << c.asset_id << ',' << std::hex << c.color << std::dec << '}' << " // " << c.children<< endl;
 	}
 	for (auto a : na)
 	{
