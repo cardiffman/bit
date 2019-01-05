@@ -40,3 +40,4 @@ add_subdirectory(gtk)
 
 add_subdirectory(jsmn)
 
+add_subdirectory(anim)

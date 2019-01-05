@@ -1,11 +1,8 @@
-[ { "scene": "first", "frames": [
-	{ "label": "one", 
-		"left": 0, 
-		"top": 0, 
-		"width": 40, 
-		"height": 40, 
-		"image": null, 
-"color": "0xff0000" 
-	}
-	]
-}]
+{
+	"containers": [
+		{
+			"area": { "x":0, "y":0, "width":1280,"height":720 },
+			"fill": [255,20,40,70]
+		}
+		]
+}

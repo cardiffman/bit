@@ -23,6 +23,7 @@ const int SCREEN_HEIGHT = 720;
 //We'll be scaling our tiles to be 40x40
 const int TILE_SIZE = 40;
 
+namespace SDLBIT {
 struct Asset {
 	unsigned id; SDL_Texture* image; unsigned width; unsigned height; unsigned rowbytes;
 };
@@ -33,8 +34,9 @@ struct Scene {
 	vector<Asset> assets;
 	vector<Glyph> glyphs;
 };
+}
 static const unsigned NO_PAR = 0;
-Scene scene = {
+SDLBIT::Scene scene = {
 		{
 		{0},
 		{ 1, NULL, 1280, 720, 1280*4 },
@@ -190,6 +192,8 @@ SDL_Texture* renderText(const std::string &message, const std::string &fontFile,
 	return texture;
 }
 
+namespace SDLBIT {
+
 void draw_scene(SDL_Renderer* renderer)
 {
 	for (auto g : scene.glyphs) {
@@ -222,6 +226,7 @@ void draw_scene(SDL_Renderer* renderer)
 			SDL_RenderFillRect(renderer, &r);
 		}
 	}
+}
 }
 
 int main(int, char**){
@@ -312,7 +317,7 @@ int main(int, char**){
 		//Rendering
 		SDL_RenderClear(renderer);
 		//Draw the image
-		draw_scene(renderer);
+		SDLBIT::draw_scene(renderer);
 		//Update the screen
 		SDL_RenderPresent(renderer);
 	}

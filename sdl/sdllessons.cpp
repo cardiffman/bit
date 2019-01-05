@@ -23,6 +23,7 @@ const int SCREEN_HEIGHT = 720;
 //We'll be scaling our tiles to be 40x40
 const int TILE_SIZE = 40;
 
+namespace SDLLesson {
 struct Asset {
 	unsigned id; SDL_Texture* image; unsigned width; unsigned height; unsigned rowbytes;
 };
@@ -33,8 +34,9 @@ struct Scene {
 	vector<Asset> assets;
 	vector<Glyph> glyphs;
 };
+}
 static const unsigned NO_PAR = 0;
-Scene scene = {
+SDLLesson::Scene scene = {
 		{
 		{0},
 		{ 1, NULL, 1280, 720, 1280*4 },
