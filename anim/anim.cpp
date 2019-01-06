@@ -13,7 +13,12 @@ using std::endl;
 
 std::ostream& operator <<(std::ostream& out, const Area& diag)
 {
-	out << diag.x << ',' << diag.y << ',' << diag.width << ',' << diag.height;
+	out << '('<<diag.x << ',' << diag.y << ',' << diag.width << ',' << diag.height << ')';
+	return out;
+}
+std::ostream& operator <<(std::ostream& out, const RectSize& diag)
+{
+	out << '(' << diag.width << ',' << diag.height << ')';
 	return out;
 }
 Container* parent_container(Scene& scene, const Container* container)
@@ -205,11 +210,13 @@ void draw_container(const Container& g, Scene& scene, BitBuffer& screen)
 			return;
 		}
 		asset_area;
-		cout << "Drawing asset " << asset.id << " for container " << g.id << " at " << asset_draw << endl;
+		bool unscaled = g.area.width == asset.image.dims.width && g.area.height == asset.image.dims.height;
+		cout << "Drawing asset " << asset.id << " for container " << g.id << ' ' << (unscaled?"unscaled":"scaled") <<" at " << asset_draw << " from " << asset.image.dims << " as " << asset_screen << " csc " << draw << " cs " << container_screen << endl;
 		// If the asset area and the container area are equal then
 		// draw 1:1 using the clipping so far.
 		if (g.area.width == asset.image.dims.width && g.area.height == asset.image.dims.height)
 		{
+			cout << "unscaled" << endl;
 			blit(asset.image
 					, asset_draw
 					, screen
@@ -217,7 +224,70 @@ void draw_container(const Container& g, Scene& scene, BitBuffer& screen)
 					);
 		}
 		else
+		{
+			// If the asset has to be stretched, then the clipped screen coordinates of the container
+			// need to be mapped down to the asset's u,v space.
+			// Believe it or not I got this right the second time I wrote it from scratch.
+			// In this case, asset_draw set up with the asset's coordinates and then mapped to
+			// the screen and clipped. asset_screen is the asset's screen coordinates without clipping.
+			// However if the above conditional is false (which it is) then the rectangle
+			// The lhs of the asset in u,v is asset_draw.x - asset_screen.x
+			// The rhs of the asset in u,v is asset_draw.x + asset_draw.width - asset_screen.x
+			int num_asset_width = asset.image.dims.width;
+			int den_asset_width = container_screen.width;
+			int num_asset_height = asset.image.dims.height;
+			int den_asset_height = container_screen.height;
+			asset_area.x = (draw.x - container_screen.x) * num_asset_width / den_asset_width;
+			asset_area.width = draw.width * num_asset_width / den_asset_width;
+			asset_area.y = (draw.y - container_screen.y) * num_asset_height / den_asset_height;
+			asset_area.height = draw.height * num_asset_height /den_asset_height;
+			cout << " Transformed " << asset_area << endl;
+			cout << " Transform num (" << num_asset_width << ',' << num_asset_height << ") den ("
+					<< den_asset_width << ',' << den_asset_height << ')' << endl;
+			// Sanity check:
+			if (asset_area.x < 0)
+			{
+				cout << asset_area << " asset draw left is negative" << endl;
+				return;
+			}
+			if (asset_area.width > asset.image.dims.width)
+			{
+				cout << asset_area << " vs " << asset.image.dims << " asset draw width is greater than asset width " << endl;
+				cout << " Transform num (" << num_asset_width << ',' << num_asset_height << ") den ("
+						<< den_asset_width << ',' << den_asset_height << ')' << endl;
+				cout << " Input width " << draw.width << endl;
+				return;
+			}
+			if (asset_area.x + asset_area.width > asset.image.dims.width)
+			{
+				cout << asset_area << " vs " << asset.image.dims << " asset draw right exceeds asset right" << endl;
+				cout << " Transform num (" << num_asset_width << ',' << num_asset_height << ") den ("
+						<< den_asset_width << ',' << den_asset_height << ')' << endl;
+				return;
+			}
+			if (asset_area.y < 0)
+			{
+				cout << asset_area << " asset draw top is negative" << endl;
+				cout << " Transform num (" << num_asset_width << ',' << num_asset_height << ") den ("
+						<< den_asset_width << ',' << den_asset_height << ')' << endl;
+				return;
+			}
+			if (asset_area.height > asset.image.dims.height)
+			{
+				cout << asset_area << " vs " << asset.image.dims << " asset draw height is greater than asset height " << endl;
+				cout << " Transform num (" << num_asset_width << ',' << num_asset_height << ") den ("
+						<< den_asset_width << ',' << den_asset_height << ')' << endl;
+				return;
+			}
+			if (asset_area.y + asset_area.height > asset.image.dims.height)
+			{
+				cout << asset_area << " vs " << asset.image.dims << " asset draw bottom exceeds asset bottom" << endl;
+				cout << " Transform num (" << num_asset_width << ',' << num_asset_height << ") den ("
+						<< den_asset_width << ',' << den_asset_height << ')' << endl;
+				return;
+			}
 			stretch(asset.image, asset_area, screen, draw);
+		}
 	}
 
 }
