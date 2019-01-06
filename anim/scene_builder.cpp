@@ -203,6 +203,93 @@ void SceneBuilder::asset_read(const std::string& text, std::vector<jsmntok_t>::i
 		urls_by_id[a.id] = url;
 	}
 }
+void walk_unused_value(std::vector<jsmntok_t>::iterator& ptokens)
+{
+	if (ptokens->type == JSMN_OBJECT)
+	{
+		int members = ptokens->size;
+		++ptokens;
+		for (int i=0; i<members; ++i)
+		{
+			if (ptokens->type == JSMN_STRING)
+			{
+				++ptokens;
+				walk_unused_value(ptokens);
+			}
+			else
+			{
+				throw "Object requires member name";
+			}
+		}
+	} else if (ptokens->type == JSMN_ARRAY) {
+		int elements = ptokens->size;
+		++ptokens;
+		for (int i=0; i<elements; ++i)
+		{
+			walk_unused_value(ptokens);
+		}
+	} else if (ptokens->type == JSMN_STRING) {
+		++ptokens;
+	} else {
+		++ptokens;
+	}
+}
+void SceneBuilder::user_input_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
+{
+	if (ptokens->type == JSMN_OBJECT)
+	{
+		int members = ptokens->size;
+		++ptokens;
+		std::string key;
+		std::string animation;
+		for (int member = 0; member<members; ++member)
+		{
+			if (ptokens->type == JSMN_STRING)
+			{
+				auto member_name = text.substr(ptokens->start, ptokens->end-ptokens->start);
+				++ptokens;
+				if (member_name == "key")
+				{
+					if (ptokens->type == JSMN_STRING)
+					{
+						key = text.substr(ptokens->start, ptokens->end-ptokens->start);
+						++ptokens;
+					}
+					else
+					{
+						cout << "key should be label";
+						walk_unused_value(ptokens);
+					}
+				}
+				else if (member_name == "animation")
+				{
+					if (ptokens->type == JSMN_STRING)
+					{
+						animation = text.substr(ptokens->start, ptokens->end-ptokens->start);
+						++ptokens;
+					}
+					else
+					{
+						cout << "animation should be label";
+						walk_unused_value(ptokens);
+					}
+				}
+				else
+				{
+					cout << member_name << ": unknown user_input member" << endl;
+					walk_unused_value(ptokens);
+				}
+			}
+		}
+		UserInput u; u.animation = animation; u.key = key;
+		userInputs.push_back(u);
+	}
+}
+
+void SceneBuilder::animation_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
+{
+	walk_unused_value(ptokens);
+}
 void SceneBuilder::scene_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
 	if (ptokens->type == JSMN_OBJECT)
@@ -246,6 +333,42 @@ void SceneBuilder::scene_read(const std::string& text, std::vector<jsmntok_t>::i
 					{
 						throw "Expect assets in array";
 					}
+				}
+				else if (member_name == "animations")
+				{
+					if (ptokens->type == JSMN_ARRAY)
+					{
+						int elements = ptokens->size;
+						++ptokens;
+						for (int i=0; i<elements; ++i)
+						{
+							animation_read(text, ptokens);
+						}
+					}
+					else
+					{
+						throw "Expect animations in array";
+					}
+				}
+				else if (member_name == "user_input")
+				{
+					if (ptokens->type == JSMN_ARRAY)
+					{
+						int elements = ptokens->size;
+						++ptokens;
+						for (int i=0; i<elements; ++i)
+						{
+							user_input_read(text, ptokens);
+						}
+					}
+					else
+					{
+						throw "Expect animations in array";
+					}
+				}
+				else {
+					cout << member_name + ": Unknown member" << endl;
+					walk_unused_value(ptokens);
 				}
 			}
 			else
