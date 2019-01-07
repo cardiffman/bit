@@ -280,7 +280,13 @@ gboolean on_window_expose_event(GtkWidget * da, GdkEventExpose * event, gpointer
 }
 gboolean on_key_press(GtkWidget* da, GdkEventKey* event, gpointer user_data)
 {
-	cout << "KEY PRESS " << event->keyval << endl;
+	cout << "KEY PRESS " << gdk_keyval_name(event->keyval) << endl;
+	GDK_KEY_space;
+	return TRUE;
+}
+gboolean on_key_release(GtkWidget* da, GdkEventKey* event, gpointer user_data)
+{
+	cout << "KEY RELEASE " << gdk_keyval_name(event->keyval) << endl;
 	GDK_KEY_space;
 	return TRUE;
 }
@@ -302,6 +308,7 @@ int main (int argc, char *argv[]){
     g_signal_connect(G_OBJECT(window), "configure_event", G_CALLBACK(on_window_configure_event), NULL);
 
     g_signal_connect (G_OBJECT (window), "key_press_event", G_CALLBACK (on_key_press), NULL);
+    g_signal_connect (G_OBJECT (window), "key_release_event", G_CALLBACK (on_key_release), NULL);
 
     gtk_widget_show_all(window);
 
