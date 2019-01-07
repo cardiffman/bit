@@ -286,9 +286,131 @@ void SceneBuilder::user_input_read(const std::string& text, std::vector<jsmntok_
 	}
 }
 
+SceneBuilder::Parameter SceneBuilder::parse_parameter(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
+{
+	if (ptokens->type != JSMN_OBJECT)
+	{
+		walk_unused_value(ptokens);
+		return Parameter();
+	}
+	else {
+		int members = ptokens->size;
+		++ptokens;
+		Parameter r;
+		for (int member = 0; member < members; ++member)
+		{
+			if (ptokens->type == JSMN_STRING)
+			{
+				auto member_name = text.substr(ptokens->start, ptokens->end-ptokens->start);
+				++ptokens;
+				r.name = member_name;
+				if (ptokens->type != JSMN_ARRAY)
+				{
+					walk_unused_value(ptokens);
+				}
+				else
+				{
+					int elements = ptokens->size;
+					++ptokens;
+					for (int element = 0; element<elements; ++element)
+					{
+						if (ptokens->type == JSMN_PRIMITIVE && text[ptokens->start]!='n' && text[ptokens->start]!='t' && text[ptokens->start]!='f')
+						{
+							r.values.push_back(std::stoi(text.substr(ptokens->start, ptokens->end-ptokens->start)));
+							++ptokens;
+						}
+						else
+						{
+							walk_unused_value(ptokens);
+						}
+					}
+				}
+			}
+		}
+		return r;
+	}
+}
+
 void SceneBuilder::animation_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
-	walk_unused_value(ptokens);
+	if (ptokens->type == JSMN_OBJECT)
+	{
+		int members = ptokens->size;
+		++ptokens;
+		std::string label;
+		std::string container;
+		int duration;
+		std::vector<Parameter> parameters;
+		for (int member = 0; member<members; ++member)
+		{
+			if (ptokens->type == JSMN_STRING)
+			{
+				auto member_name = text.substr(ptokens->start, ptokens->end-ptokens->start);
+				++ptokens;
+				if (member_name == "label")
+				{
+					if (ptokens->type == JSMN_STRING)
+					{
+						label = text.substr(ptokens->start, ptokens->end-ptokens->start);
+						++ptokens;
+					}
+					else
+					{
+						cout << "label should be label" << endl;
+						walk_unused_value(ptokens);
+					}
+				}
+				else if (member_name == "container")
+				{
+					if (ptokens->type == JSMN_STRING)
+					{
+						container = text.substr(ptokens->start, ptokens->end-ptokens->start);
+						++ptokens;
+					}
+					else
+					{
+						cout << "container should be label" << endl;
+						walk_unused_value(ptokens);
+					}
+				}
+				else if (member_name == "duration")
+				{
+					if (ptokens->type == JSMN_PRIMITIVE && text[ptokens->start]!='n' && text[ptokens->start]!='t' && text[ptokens->start]!='f')
+					{
+						duration = std::stoi(text.substr(ptokens->start, ptokens->end-ptokens->start));
+						++ptokens;
+					}
+					else
+					{
+						cout << "container should be number" << endl;
+						walk_unused_value(ptokens);
+					}
+				}
+				else if (member_name == "parameters")
+				{
+					if (ptokens->type == JSMN_ARRAY)
+					{
+						int elements = ptokens->size;
+						++ptokens;
+						Parameter parameter = parse_parameter(text, ptokens);
+						parameters.push_back(parameter);
+					}
+					else
+					{
+						cout << "container should be an array" << endl;
+						walk_unused_value(ptokens);
+					}
+				}
+				else
+				{
+					cout << member_name << ": unknown animation member" << endl;
+					walk_unused_value(ptokens);
+				}
+			}
+		}
+		Animation a; a.container = container; a.msec = duration; a.parameters = parameters;
+		animations.push_back(a);
+	}
 }
 void SceneBuilder::scene_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {

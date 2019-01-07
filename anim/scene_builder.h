@@ -49,6 +49,7 @@ private:
 	static bool by_id(const Container& a, const Container& b);
 	void user_input_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void animation_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
+	Parameter parse_parameter(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 };
 
 #endif /* BIT_SCENE_BUILDER_H_ */
