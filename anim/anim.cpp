@@ -130,17 +130,37 @@ int clip_area_to_heirarchy(Scene& scene, const Container& container, Area& draw,
 void blit(BitBuffer& src
 		, const Area& srcArea
 		, BitBuffer& dst
-		, const Area& dstArea)
+		, int dstX, int dstY)
 {
-	uint32_t* dstrow = (uint32_t*)(dst.mem + dstArea.y*dst.rowbytes);
+#if 0
+	uint32_t* dstrow = (uint32_t*)(dst.mem + dstY*dst.rowbytes);
 	uint32_t* srcrow = (uint32_t*)(src.mem + srcArea.y*src.rowbytes);
 	for (unsigned y = 0; y<srcArea.height; y++) {
 		for (unsigned x = 0; x<srcArea.width; x++) {
-			dstrow[x+dstArea.x] = srcrow[x+srcArea.x];
+			dstrow[x+dstX] = srcrow[x+srcArea.x];
 		}
-		dstrow = (uint32_t*)(((uint8_t*)dstrow)+dst.rowbytes);
-		srcrow = (uint32_t*)(((uint8_t*)srcrow)+src.rowbytes);
+		dstrow = dstrow + (dst.rowbytes/4);//(uint32_t*)(((uint8_t*)dstrow)+dst.rowbytes);
+		srcrow = srcrow + (src.rowbytes/4);//(uint32_t*)(((uint8_t*)srcrow)+src.rowbytes);
 	}
+#else
+	int x_ratio = (int)((srcArea.width<<16)/srcArea.width) +1;
+    int y_ratio = (int)((srcArea.height<<16)/srcArea.height) +1;
+    for (int i=0; i<srcArea.height; ++i)
+    {
+		int y2 = ((i*y_ratio)>>16);
+		uint32_t* dstmem = (uint32_t*)(dst.mem + dst.rowbytes*(i+dstY)+4*dstX);
+		uint32_t* srcmem = (uint32_t*)(src.mem + src.rowbytes*(y2+srcArea.y)+4*srcArea.x);
+    	for (int j=0; j<srcArea.width; ++j)
+    	{
+    		int x2 = ((j*x_ratio)>>16);
+    		dstmem[j] = srcmem[x2];
+    		//dst.mem[((i*dst.dims.width)+j)*4+0]=src.mem[((y2*src.dims.width)+x2)*4+0];
+    		//dst.mem[((i*dst.dims.width)+j)*4+1]=src.mem[((y2*src.dims.width)+x2)*4+1];
+    		//dst.mem[((i*dst.dims.width)+j)*4+2]=src.mem[((y2*src.dims.width)+x2)*4+2];
+    		//dst.mem[((i*dst.dims.width)+j)*4+3]=src.mem[((y2*src.dims.width)+x2)*4+3];
+    	}
+    }
+#endif
 }
 void stretch(BitBuffer& src
 		, const Area& srcArea
@@ -218,9 +238,9 @@ void draw_container(const Container& g, Scene& scene, BitBuffer& screen)
 		{
 			cout << "unscaled" << endl;
 			blit(asset.image
-					, asset_draw
+					, asset_area
 					, screen
-					, g.area
+					, draw.x, draw.y//g.area
 					);
 		}
 		else
