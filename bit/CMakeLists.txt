@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.7)
 project(bit C CXX)
 
+pkg_check_Modules(XCB_SHM REQUIRED xcb-shm)
+
+
 add_executable(bit
 	bit.cpp
 	parse_json_dom.cpp
@@ -20,3 +23,8 @@ target_link_libraries(bit anim jsmn xcbwindow ${KS_LIBRARIES} ${XCB_LIBRARIES} $
 target_include_directories(bit PUBLIC ../anim ../jsmn ../XCB ${CMAKE_CURRENT_SOURCE_DIR}/.. ${KS_INCLUDE_DIRS} ${XCB_INCLUDE_DIRS})
 target_compile_options(bit PUBLIC ${SDL2_CFLAGS_OTHER} ${XCB_CFLAGS_OTHER})
 
+add_executable(shmtrial
+	shmtrial.cpp
+	)
+target_include_directories(shmtrial PUBLIC ../anim ../jsmn ../XCB ${CMAKE_CURRENT_SOURCE_DIR}/.. ${KS_INCLUDE_DIRS} ${XCB_INCLUDE_DIRS})
+target_link_libraries(shmtrial anim jsmn xcbwindow ${KS_LIBRARIES} ${XCB_LIBRARIES} ${XCB_SHM_LIBRARIES} ${PNG_LIBRARIES} ${JPEG_LIBRARIES})
