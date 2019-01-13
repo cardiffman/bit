@@ -32,6 +32,7 @@ public:
 	void repaint();
 	xcb_window_t getWindow() { return window; }
 	void copy();
+    SceneBuilder builder;
 private:
 	shmwindow(const Rect& rect);
 	virtual void onKeyRelease(const KeyDescriptor& key);
@@ -212,6 +213,21 @@ void shmwindow::copy()
 void shmwindow::onKeyRelease(const KeyDescriptor& key)
 {
 	clog << __PRETTY_FUNCTION__ << ' '<< key.toString() << endl;
+    std::string key_name;
+    if (key.code() == 0x0020)
+        key_name = "space";
+    else if (key.code() == 0xff08)
+        key_name = "backspace";
+    else return; // nothing to dispatch
+    for (auto userInput : builder.userInputs)
+    {
+        if (userInput.key == key_name)
+        {
+            clog << __PRETTY_FUNCTION__ << ' ' << "Should play " << userInput.animation << endl;
+            return;
+        }
+    }
+    clog << __PRETTY_FUNCTION__ << ' ' << "No animation to trigger" << endl;
 }
 void shmwindow::onKeyPress(const KeyDescriptor& key)
 {
@@ -222,11 +238,10 @@ int main(int argc, char** argv)
 	shmwindow* win = shmwindow::create();
     //xcb_gcontext_t          gcontext;
 	win->configure(Rect((1920-1280)/2,(1080-720)/2,1280,720));
-    SceneBuilder builder;
-    builder.parse_containers(argv[1]);
+    win->builder.parse_containers(argv[1]);
     Scene scene;
-	scene.containers = builder.nc;
-	scene.assets = builder.na;
+	scene.containers = win->builder.nc;
+	scene.assets = win->builder.na;
     draw_scene(scene, screen);
 	win->repaint();
 
