@@ -15,6 +15,8 @@
 
 #include "scene.h"
 
+struct GraphicsEngine;
+
 struct SceneBuilder
 {
 	std::vector<Container> nc;
@@ -37,7 +39,7 @@ struct SceneBuilder
 	int container_id;
 	int asset_id;
 	SceneBuilder();
-	void parse_containers(const char* file);
+	void parse_containers(const char* file, GraphicsEngine* engine);
 private:
 	void parse_asset_label(unsigned& id, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void parse_color(unsigned& color, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);

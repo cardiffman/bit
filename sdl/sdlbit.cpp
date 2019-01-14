@@ -16,13 +16,14 @@
 #include "cleanup.h"
 #include "scene.h"
 #include "scene_builder.h"
+#include "engine.h"
 
 using std::vector;
 using std::cout;
 using std::endl;
 
 const int SCREEN_WIDTH  = 1280;
-const int SCREEN_HEIGHT = SCREEN_HEIGHT;
+const int SCREEN_HEIGHT = 720;
 
 /**
 * Log an SDL error with some error message to the output stream of our choice
@@ -70,7 +71,6 @@ SDL_Texture* renderText(const std::string &message, const std::string &fontFile,
 }
 
 Scene scene;
-BitBuffer screen;
 
 int main(int argc, char** argv){
 	//Start up SDL and make sure it went ok
@@ -94,20 +94,15 @@ int main(int argc, char** argv){
 		SDL_Quit();
 		return 1;
 	}
-#if 1 // Enable interesting code when event loop is debugged
     int width=SCREEN_WIDTH, height=SCREEN_HEIGHT;
 
-    screen.rowbytes = width*4;
-    screen.dims.width = width;
-    screen.dims.height = height;
-    screen.mem = (uint8_t*)malloc(screen.rowbytes * screen.dims.height);
-    memset(screen.mem, 0, screen.rowbytes * screen.dims.height);
+	auto engine = init_base_engine();
 
 	SceneBuilder builder;
 	if (argc > 1)
 	{
 		try {
-			builder.parse_containers(argv[1]);
+			builder.parse_containers(argv[1], engine);
 		} catch (char const * ex) {
 			cout << "Exception " << ex << endl;
 			return 1;
@@ -124,29 +119,46 @@ int main(int argc, char** argv){
 		scene.containers.push_back(Container({{ 0,0,SCREEN_WIDTH,SCREEN_HEIGHT },1,0,0,0xFFFF0000}));
 		scene.assets = {{0}};
 	}
-#if 1
-    auto sdlTexture = SDL_CreateTexture(renderer,
-                                   SDL_PIXELFORMAT_ARGB8888,
-                                   SDL_TEXTUREACCESS_STREAMING,
-                                   SCREEN_WIDTH, SCREEN_HEIGHT);
+	auto sdlTexture = SDL_CreateTexture(renderer,
+										SDL_PIXELFORMAT_ARGB8888,
+										SDL_TEXTUREACCESS_STREAMING,
+										SCREEN_WIDTH, SCREEN_HEIGHT);
+	if (!sdlTexture)
+	{
+		logSDLError(std::cout, "CreateTexture");
+		cleanup(window);
+		SDL_Quit();
+		exit(1);
+	}
 
-    SDL_LockTexture(sdlTexture, NULL, reinterpret_cast<void**>(&screen.mem), reinterpret_cast<int*>(&screen.rowbytes));
-    draw_scene(scene,screen);
-    SDL_UnlockTexture(sdlTexture);
-    SDL_RenderCopy(renderer, sdlTexture, NULL, NULL);
-#else
-    draw_scene(scene,screen);
-    auto sdlTexture = SDL_CreateTexture(renderer,
-                                   SDL_PIXELFORMAT_ARGB8888,
-                                   SDL_TEXTUREACCESS_STREAMING,
-                                   SCREEN_WIDTH, SCREEN_HEIGHT);
-    SDL_Rect sdlRect; sdlRect.x = 0; sdlRect.y = 0; sdlRect.w = SCREEN_WIDTH; sdlRect.h = SCREEN_HEIGHT;
-    cout << "Texture created " << sdlTexture <<endl;
-    int res = SDL_UpdateTexture(sdlTexture, NULL, screen.mem, screen.dims.height*screen.rowbytes);
-    cout << "Texture update " << res <<endl;
-    SDL_RenderCopy(renderer, sdlTexture, NULL, NULL);
-#endif
-#endif
+	void *texmem; int tex_rowbytes;
+	if (0 != SDL_LockTexture(sdlTexture, NULL, (&texmem), &tex_rowbytes))
+	{
+		logSDLError(std::cout, "138 LockTexture");
+		cleanup(window, sdlTexture);
+		SDL_Quit();
+		exit(1);
+	}
+	draw_scene(scene, engine);
+	SDL_UnlockTexture(sdlTexture);
+	uint8_t *scrmem; uint32_t scr_rowbytes;
+	engine->getScreenBuffer()->lock(scrmem, scr_rowbytes);
+	if (0 != SDL_LockTexture(sdlTexture, NULL, (&texmem), &tex_rowbytes))
+	{
+		logSDLError(std::cout, "147 LockTexture");
+		cleanup(window, sdlTexture);
+		SDL_Quit();
+		exit(1);
+	}
+	for (int y = 0; y < 720; ++y)
+	{
+		memcpy(texmem, scrmem, 4 * 1280);
+		texmem = (uint8_t *)texmem + tex_rowbytes;
+		scrmem = scrmem += scr_rowbytes;
+	}
+
+	SDL_UnlockTexture(sdlTexture);
+	SDL_RenderCopy(renderer, sdlTexture, NULL, NULL);
 	SDL_RenderPresent(renderer);
 
 	SDL_Event e;
@@ -162,21 +174,6 @@ int main(int argc, char** argv){
 				;
 			}
 		}
-		//Rendering
-#if 1
-	    SDL_LockTexture(sdlTexture, NULL, reinterpret_cast<void**>(&screen.mem), reinterpret_cast<int*>(&screen.rowbytes));
-	    draw_scene(scene,screen);
-	    SDL_UnlockTexture(sdlTexture);
-	    SDL_RenderCopy(renderer, sdlTexture, NULL, NULL);
-		SDL_RenderPresent(renderer);
-#else
-		SDL_RenderClear(renderer);
-		//Draw the image
-		draw_scene(scene, screen);
-	    SDL_UpdateTexture(sdlTexture, &sdlRect, screen.mem, screen.rowbytes);
-		//Update the screen
-		SDL_RenderPresent(renderer);
-#endif
 	}
 	//Clean up
 	cleanup(renderer, window);

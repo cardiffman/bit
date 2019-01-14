@@ -8,6 +8,8 @@
 #include "png.h"
 #include <stdarg.h>
 #include <stdlib.h>
+#include <stdint.h>
+#include "engine.h"
 
 png_byte color_type;
 png_byte bit_depth;
@@ -27,7 +29,7 @@ void abort_(const char * s, ...)
         abort();
 }
 
-void read_png_file(const char* file_name, BitBuffer* bits)
+void read_png_file(const char* file_name, GraphicsEngine* engine, GraphicsBuffer*& DEST)
 {
 	unsigned char header[8];    // 8 is the maximum size that can be checked
 	uint32_t width, height;
@@ -60,8 +62,9 @@ void read_png_file(const char* file_name, BitBuffer* bits)
 
 	png_read_info(png_ptr, info_ptr);
 
-	bits->dims.width = width = png_get_image_width(png_ptr, info_ptr);
-	bits->dims.height = height = png_get_image_height(png_ptr, info_ptr);
+	RectSize dims;
+	dims.width = width = png_get_image_width(png_ptr, info_ptr);
+	dims.height = height = png_get_image_height(png_ptr, info_ptr);
 	color_type = png_get_color_type(png_ptr, info_ptr);
 	bit_depth = png_get_bit_depth(png_ptr, info_ptr);
 
@@ -71,19 +74,15 @@ void read_png_file(const char* file_name, BitBuffer* bits)
 	/* read file */
 	if (setjmp (png_jmpbuf(png_ptr)))abort_("[read_png_file] Error during read_image");
 
-	bits->rowbytes = png_get_rowbytes(png_ptr, info_ptr);
-	bits->mem = new uint8_t[bits->rowbytes*bits->dims.height];
+	uint32_t rowbytes = png_get_rowbytes(png_ptr, info_ptr);
+	auto mem = new uint8_t[rowbytes*dims.height];
 	row_pointers = (png_bytep*) malloc(sizeof(png_bytep) * height);
 	for (y = 0; y < height; y++)
-		row_pointers[y] = y*bits->rowbytes + bits->mem;
-#if 0
-	for (y = 0; y < height; y++)
-		row_pointers[y] = (png_byte*) malloc(
-				png_get_rowbytes(png_ptr, info_ptr));
-#endif
+		row_pointers[y] = y*rowbytes + mem;
 
 	png_read_image(png_ptr, row_pointers);
 	free(row_pointers);
+	DEST = engine->makeBuffer(dims, mem, rowbytes);
 
 	fclose(fp);
 }

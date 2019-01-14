@@ -6,6 +6,7 @@
  */
 #include "scene_builder.h"
 #include "scene.h"
+#include "engine.h"
 #include <iostream>
 #include "read_JPEG_file.h"
 #include "read_png_file.h"
@@ -509,20 +510,21 @@ void SceneBuilder::print_scene()
 	}
 	for (auto a : na)
 	{
-		cout << "{" << a.id << ',' << '{'<< a.image.dims.width << ','<< a.image.dims.height << '}'<< urls_by_id[a.id] << '}' << endl;
+		if (a.id != 0)
+		cout << "{" << a.id << ',' << '{'<< a.image->dims.width << ','<< a.image->dims.height << '}'<< urls_by_id[a.id] << '}' << endl;
 	}
 }
 bool SceneBuilder::by_id(const Container& a, const Container& b)
 {
 	return a.id < b.id;
 }
-void SceneBuilder::parse_containers(const char* file)
+void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 {
 	std::vector<jsmntok_t> tokens;
 	std::string jstext;
 	tokenize_json(file, tokens, jstext);
 	cout << "js: chars provided " << jstext.size() << endl;
-	dump_jstokens(tokens, jstext);
+	//dump_jstokens(tokens, jstext);
 	auto ptokens = tokens.begin();
 	cout << "Scene" << endl;
 	scene_read(&jstext[0], ptokens);
@@ -537,15 +539,15 @@ void SceneBuilder::parse_containers(const char* file)
 			nc[g.parent_id].children++;
 	}
 	na.insert(na.begin(), Asset());
-	print_scene();
+	//print_scene();
 	for (auto u : urls_by_id)
 	{
 		if (u.second.find(".jpg")!=-1)
 		{
-			read_JPEG_file(u.second.c_str(), &na[u.first].image);
+			read_JPEG_file(u.second.c_str(), engine, na[u.first].image);
 		} else if (u.second.find(".png")!=-1)
 		{
-			read_png_file(u.second.c_str(), &na[u.first].image);
+			read_png_file(u.second.c_str(), engine, na[u.first].image);
 		}
 	}
 	print_scene();

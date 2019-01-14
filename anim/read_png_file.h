@@ -8,10 +8,10 @@
 #ifndef BIT_READ_PNG_FILE_H_
 #define BIT_READ_PNG_FILE_H_
 
-#include "bitbuffer.h"
-void read_png_file(const char* file_name, BitBuffer* bits);
+class GraphicsEngine;
+class GraphicsBuffer;
 
-
+void read_png_file(const char* file_name, GraphicsEngine* engine, GraphicsBuffer*& DEST);
 
 
 #endif /* BIT_READ_PNG_FILE_H_ */

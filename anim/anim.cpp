@@ -6,6 +6,7 @@
  */
 
 #include "scene.h"
+#include "engine.h"
 #include <iostream>
 
 using std::cout;
@@ -127,77 +128,8 @@ int clip_area_to_heirarchy(Scene& scene, const Container& container, Area& draw,
 	}
 	return res;
 }
-void blit(BitBuffer& src
-		, const Area& srcArea
-		, BitBuffer& dst
-		, int dstX, int dstY)
-{
-#if 0
-	uint32_t* dstrow = (uint32_t*)(dst.mem + dstY*dst.rowbytes);
-	uint32_t* srcrow = (uint32_t*)(src.mem + srcArea.y*src.rowbytes);
-	for (unsigned y = 0; y<srcArea.height; y++) {
-		for (unsigned x = 0; x<srcArea.width; x++) {
-			dstrow[x+dstX] = srcrow[x+srcArea.x];
-		}
-		dstrow = dstrow + (dst.rowbytes/4);//(uint32_t*)(((uint8_t*)dstrow)+dst.rowbytes);
-		srcrow = srcrow + (src.rowbytes/4);//(uint32_t*)(((uint8_t*)srcrow)+src.rowbytes);
-	}
-#else
-	int x_ratio = (int)((srcArea.width<<16)/srcArea.width) +1;
-    int y_ratio = (int)((srcArea.height<<16)/srcArea.height) +1;
-    for (int i=0; i<srcArea.height; ++i)
-    {
-		int y2 = ((i*y_ratio)>>16);
-		uint32_t* dstmem = (uint32_t*)(dst.mem + dst.rowbytes*(i+dstY)+4*dstX);
-		uint32_t* srcmem = (uint32_t*)(src.mem + src.rowbytes*(y2+srcArea.y)+4*srcArea.x);
-    	for (int j=0; j<srcArea.width; ++j)
-    	{
-    		int x2 = ((j*x_ratio)>>16);
-    		dstmem[j] = srcmem[x2];
-    		//dst.mem[((i*dst.dims.width)+j)*4+0]=src.mem[((y2*src.dims.width)+x2)*4+0];
-    		//dst.mem[((i*dst.dims.width)+j)*4+1]=src.mem[((y2*src.dims.width)+x2)*4+1];
-    		//dst.mem[((i*dst.dims.width)+j)*4+2]=src.mem[((y2*src.dims.width)+x2)*4+2];
-    		//dst.mem[((i*dst.dims.width)+j)*4+3]=src.mem[((y2*src.dims.width)+x2)*4+3];
-    	}
-    }
-#endif
-}
-void stretch(BitBuffer& src
-		, const Area& srcArea
-		, BitBuffer& dst
-		, const Area& dstArea)
-{
-	int x_ratio = (int)((srcArea.width<<16)/dstArea.width) +1;
-    int y_ratio = (int)((srcArea.height<<16)/dstArea.height) +1;
-    for (int i=0; i<dstArea.height; ++i)
-    {
-		int y2 = ((i*y_ratio)>>16);
-		uint32_t* dstmem = (uint32_t*)(dst.mem + dst.rowbytes*(i+dstArea.y)+4*dstArea.x);
-		uint32_t* srcmem = (uint32_t*)(src.mem + src.rowbytes*(y2+srcArea.y)+4*srcArea.x);
-    	for (int j=0; j<dstArea.width; ++j)
-    	{
-    		int x2 = ((j*x_ratio)>>16);
-    		dstmem[j] = srcmem[x2];
-    		//dst.mem[((i*dst.dims.width)+j)*4+0]=src.mem[((y2*src.dims.width)+x2)*4+0];
-    		//dst.mem[((i*dst.dims.width)+j)*4+1]=src.mem[((y2*src.dims.width)+x2)*4+1];
-    		//dst.mem[((i*dst.dims.width)+j)*4+2]=src.mem[((y2*src.dims.width)+x2)*4+2];
-    		//dst.mem[((i*dst.dims.width)+j)*4+3]=src.mem[((y2*src.dims.width)+x2)*4+3];
-    	}
-    }
-}
-void fill(uint32_t color
-		, BitBuffer& dst
-		, const Area& dstArea)
-{
-	for (unsigned y = 0; y<dstArea.height; y++) {
-		uint32_t* dstrow = (uint32_t*)(dst.mem + (dstArea.y+y)*dst.rowbytes);
-		for (unsigned x = 0; x<dstArea.width; x++) {
-			dstrow[x+dstArea.x] = color;
-		}
-	}
-}
 
-void draw_container(const Container& g, Scene& scene, BitBuffer& screen)
+void draw_container(const Container& g, Scene& scene, GraphicsBuffer* screen, GraphicsEngine* engine)
 {
 	if (g.children)
 	{
@@ -216,13 +148,13 @@ void draw_container(const Container& g, Scene& scene, BitBuffer& screen)
 	if (g.asset_id == ID_NULL)
 	{
 		cout << "Filling color " << std::hex << g.color << std::dec << " for container " << g.id << " at " << draw << endl;
-		fill(g.color, screen, draw);
+		engine->fill(screen, draw, g.color);
 	}
 	else
 	{
 		Area asset_draw, asset_screen;
 		Asset& asset = scene.assets[g.asset_id];
-		Area asset_area = Area(0,0,asset.image.dims.width,asset.image.dims.height);
+		Area asset_area = Area(0,0,asset.image->dims.width,asset.image->dims.height);
 		asset_draw = asset_area;
 		if (CLIP_OUT == clip_area_to_heirarchy(scene, g, asset_draw, asset_screen))
 		{
@@ -230,17 +162,17 @@ void draw_container(const Container& g, Scene& scene, BitBuffer& screen)
 			return;
 		}
 		asset_area;
-		bool unscaled = g.area.width == asset.image.dims.width && g.area.height == asset.image.dims.height;
-		cout << "Drawing asset " << asset.id << " for container " << g.id << ' ' << (unscaled?"unscaled":"scaled") <<" at " << asset_draw << " from " << asset.image.dims << " as " << asset_screen << " csc " << draw << " cs " << container_screen << endl;
+		bool unscaled = g.area.width == asset.image->dims.width && g.area.height == asset.image->dims.height;
+		cout << "Drawing asset " << asset.id << " for container " << g.id << ' ' << (unscaled?"unscaled":"scaled") <<" at " << asset_draw << " from " << asset.image->dims << " as " << asset_screen << " csc " << draw << " cs " << container_screen << endl;
 		// If the asset area and the container area are equal then
 		// draw 1:1 using the clipping so far.
-		if (g.area.width == asset.image.dims.width && g.area.height == asset.image.dims.height)
+		if (g.area.width == asset.image->dims.width && g.area.height == asset.image->dims.height)
 		{
 			cout << "unscaled" << endl;
-			blit(asset.image
+			engine->blit(screen
+					, draw.x, draw.y
+					, asset.image
 					, asset_area
-					, screen
-					, draw.x, draw.y//g.area
 					);
 		}
 		else
@@ -253,9 +185,9 @@ void draw_container(const Container& g, Scene& scene, BitBuffer& screen)
 			// However if the above conditional is false (which it is) then the rectangle
 			// The lhs of the asset in u,v is asset_draw.x - asset_screen.x
 			// The rhs of the asset in u,v is asset_draw.x + asset_draw.width - asset_screen.x
-			int num_asset_width = asset.image.dims.width;
+			int num_asset_width = asset.image->dims.width;
 			int den_asset_width = container_screen.width;
-			int num_asset_height = asset.image.dims.height;
+			int num_asset_height = asset.image->dims.height;
 			int den_asset_height = container_screen.height;
 			asset_area.x = (draw.x - container_screen.x) * num_asset_width / den_asset_width;
 			asset_area.width = draw.width * num_asset_width / den_asset_width;
@@ -270,17 +202,17 @@ void draw_container(const Container& g, Scene& scene, BitBuffer& screen)
 				cout << asset_area << " asset draw left is negative" << endl;
 				return;
 			}
-			if (asset_area.width > asset.image.dims.width)
+			if (asset_area.width > asset.image->dims.width)
 			{
-				cout << asset_area << " vs " << asset.image.dims << " asset draw width is greater than asset width " << endl;
+				cout << asset_area << " vs " << asset.image->dims << " asset draw width is greater than asset width " << endl;
 				cout << " Transform num (" << num_asset_width << ',' << num_asset_height << ") den ("
 						<< den_asset_width << ',' << den_asset_height << ')' << endl;
 				cout << " Input width " << draw.width << endl;
 				return;
 			}
-			if (asset_area.x + asset_area.width > asset.image.dims.width)
+			if (asset_area.x + asset_area.width > asset.image->dims.width)
 			{
-				cout << asset_area << " vs " << asset.image.dims << " asset draw right exceeds asset right" << endl;
+				cout << asset_area << " vs " << asset.image->dims << " asset draw right exceeds asset right" << endl;
 				cout << " Transform num (" << num_asset_width << ',' << num_asset_height << ") den ("
 						<< den_asset_width << ',' << den_asset_height << ')' << endl;
 				return;
@@ -292,21 +224,21 @@ void draw_container(const Container& g, Scene& scene, BitBuffer& screen)
 						<< den_asset_width << ',' << den_asset_height << ')' << endl;
 				return;
 			}
-			if (asset_area.height > asset.image.dims.height)
+			if (asset_area.height > asset.image->dims.height)
 			{
-				cout << asset_area << " vs " << asset.image.dims << " asset draw height is greater than asset height " << endl;
+				cout << asset_area << " vs " << asset.image->dims << " asset draw height is greater than asset height " << endl;
 				cout << " Transform num (" << num_asset_width << ',' << num_asset_height << ") den ("
 						<< den_asset_width << ',' << den_asset_height << ')' << endl;
 				return;
 			}
-			if (asset_area.y + asset_area.height > asset.image.dims.height)
+			if (asset_area.y + asset_area.height > asset.image->dims.height)
 			{
-				cout << asset_area << " vs " << asset.image.dims << " asset draw bottom exceeds asset bottom" << endl;
+				cout << asset_area << " vs " << asset.image->dims << " asset draw bottom exceeds asset bottom" << endl;
 				cout << " Transform num (" << num_asset_width << ',' << num_asset_height << ") den ("
 						<< den_asset_width << ',' << den_asset_height << ')' << endl;
 				return;
 			}
-			stretch(asset.image, asset_area, screen, draw);
+			engine->stretchSrcCopy(screen, draw, asset.image, asset_area);
 		}
 	}
 
@@ -369,21 +301,7 @@ void make_screen_rect(Scene& scene, const Container& container, Area& screen)
 		parent = parent_container(scene, parent);
 	}
 }
-void draw_rect(BitBuffer& screen, const Area& a, unsigned color)
-{
-	for (unsigned x=0; x<a.width; ++x)
-	{
-		*(uint32_t*)(&screen.mem[a.y*screen.rowbytes+4*(x+a.x)+0])=color;
-		*(uint32_t*)(&screen.mem[(a.y+a.height-1)*screen.rowbytes+4*(x+a.x)+0])=color;
-	}
-	for (unsigned y=0; y<a.height; ++y)
-	{
-		*(uint32_t*)(&screen.mem[(a.y+y)*screen.rowbytes+4*a.x+0])=color;
-		*(uint32_t*)(&screen.mem[(a.y+y)*screen.rowbytes+4*(a.x+a.width-1)+0])=color;
-	}
-}
-
-void draw_scene(Scene& scene, BitBuffer& buf)
+void draw_scene(Scene& scene, GraphicsEngine* engine)
 {
 	cout << "Drawing" << endl;
 	for (auto& g : scene.containers) {
@@ -398,7 +316,7 @@ void draw_scene(Scene& scene, BitBuffer& buf)
 		Container& g = scene.containers[ig];
 		if (check_parent_loop(scene, g))
 			continue;
-		draw_container(g, scene, buf);
+		draw_container(g, scene, engine->getScreenBuffer(), engine);
 	}
 }
 

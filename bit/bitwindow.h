@@ -10,15 +10,17 @@
 
 #include "XCBWindow.h"
 
+class GraphicsEngine;
+
 class bitwindow : public XCBWindow
 {
 public:
-	static bitwindow* create();
+	static bitwindow* create(GraphicsEngine*);
 	void onExpose(int x, int y, int width, int height, int count);
 	void repaint();
 private:
 	bitwindow(const Rect& rect);
+	GraphicsEngine* engine;
 };
-#include "bitbuffer.h"
 
 #endif /* BITWINDOW_H_ */

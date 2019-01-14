@@ -8,9 +8,10 @@
 #ifndef BIT_READ_JPEG_FILE_H_
 #define BIT_READ_JPEG_FILE_H_
 
-#include "bitbuffer.h"
+class GraphicsEngine;
+class GraphicsBuffer;
 
-int read_JPEG_file (const char * filename, BitBuffer* bits);
+int read_JPEG_file (const char * filename, GraphicsEngine* engine, GraphicsBuffer*& buffer);
 
 
 

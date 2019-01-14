@@ -6,10 +6,10 @@
  */
 
 #include "read_JPEG_file.h"
+#include "engine.h"
 #include <stdio.h> // this one before jpeglib.h
 #include "jpeglib.h"
 #include "jerror.h"
-#include "bitbuffer.h"
 #include <setjmp.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,7 +39,7 @@ my_error_exit (j_common_ptr cinfo)
   /* Return control to the setjmp point */
   longjmp(myerr->setjmp_buffer, 1);
 }
-int read_JPEG_file (const char * filename, BitBuffer* bits)
+int read_JPEG_file (const char * filename, GraphicsEngine* engine, GraphicsBuffer*& DEST/*BitBuffer* bits*/)
 {
   /* This struct contains the JPEG decompression parameters and pointers to
    * working space (which is allocated as needed by the JPEG library).
@@ -117,11 +117,11 @@ int read_JPEG_file (const char * filename, BitBuffer* bits)
    * if we asked for color quantization.
    * In this example, we need to make an output work buffer of the right size.
    */
-  bits->rowbytes = (cinfo.output_width * cinfo.output_components + 3) & ~3;
-  bits->dims.width = cinfo.output_width;
-  bits->dims.height = cinfo.output_height;
-  bits->mem = (uint8_t*)malloc(bits->dims.height * bits->rowbytes);
-  uint8_t* output_line = bits->mem;
+  uint32_t rowBytes = (cinfo.output_width * cinfo.output_components + 3) & ~3;
+  auto mem = (uint8_t*)malloc(cinfo.output_height * rowBytes);
+
+  GraphicsBuffer* myBuffer = engine->makeBuffer(RectSize(cinfo.output_width, cinfo.output_height), mem, rowBytes);
+  uint8_t* output_line = mem;
   /* JSAMPLEs per row in output buffer */
   row_stride = cinfo.output_width * cinfo.output_components;
   /* Make a one-row-high sample array that will go away when done with image */
@@ -141,7 +141,7 @@ int read_JPEG_file (const char * filename, BitBuffer* bits)
      */
     (void) jpeg_read_scanlines(&cinfo, buffer, 1);
     memcpy(output_line, buffer[0], row_stride);
-    output_line += bits->rowbytes;
+    output_line += rowBytes;
   }
 
   /* Step 7: Finish decompression */
@@ -166,6 +166,7 @@ int read_JPEG_file (const char * filename, BitBuffer* bits)
   /* At this point you may want to check to see whether any corrupt-data
    * warnings occurred (test whether jerr.pub.num_warnings is nonzero).
    */
+  DEST = myBuffer;
 
   /* And we're done! */
   return 1;

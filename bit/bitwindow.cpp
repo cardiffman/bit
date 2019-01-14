@@ -6,32 +6,23 @@
  */
 
 #include "bitwindow.h"
+#include "engine.h"
 
 #include <iostream>
 #include <cstdlib> // for exit
 
 using namespace std;
 
-BitBuffer screen;
-//uint8_t* Mem;
-//unsigned bytes;
-
 bitwindow::bitwindow(const Rect& rect)
 : XCBWindow(createXcbWindow("bitwindow", rect))
 {
 }
-bitwindow* bitwindow::create()
+bitwindow* bitwindow::create(GraphicsEngine* engine_)
 {
-	screen.rowbytes = 1280*4;
-	auto bytes = screen.rowbytes*720;
-	screen.mem = new uint8_t[(1280*720*4)];
-	//bytes = 1280*720*4;
-	screen.dims = RectSize(1280,720);
-	uint32_t* pixels = (uint32_t*)screen.mem;
-	for (unsigned y = 0; y<720; y++)
-		for (unsigned x = 0; x<1280; x++)
-			pixels[y*1280+x] = 0xFFEECCDD;//((x^y)&1)?0xFFFFFFFF:0xFF000000;
+	auto screen = engine_->getScreenBuffer();
+	engine_->fill(screen, Area(0,0,1280,720), 0xFFEECCDD);
 	bitwindow* w = new bitwindow(Rect((1920-1280)/2,(1080-720)/2,1280,720));
+	w->engine = engine_;
 	return w;
 }
 void bitwindow::repaint()
@@ -45,9 +36,14 @@ void bitwindow::repaint()
 	xcb_void_cookie_t cookie_gc = xcb_create_gc_checked(xcb_connection,
 			gcontext, window, mask, value_list);
 	xcb_generic_error_t* error = xcb_request_check(xcb_connection, cookie_gc);
+	uint8_t* ptr;
+	uint32_t pitch;
+	auto sc = engine->getScreenBuffer();
+	sc->lock(ptr, pitch);
 	xcb_void_cookie_t chk = xcb_put_image_checked(xcb_connection,
 			XCB_IMAGE_FORMAT_Z_PIXMAP, window, gcontext, (uint16_t)1280/*width*/, (uint16_t)720/*height*/, 0,
-			0, 0, XCBWindow::xcb_screen->root_depth, screen.rowbytes*screen.dims.height, screen.mem);
+			0, 0, XCBWindow::xcb_screen->root_depth, pitch*sc->dims.height, ptr);
+	sc->unlock();
 	xcb_flush(xcb_connection);
 	//cerr << "Image put, checking\n";
 	/*xcb_generic_error_t**/ error = xcb_request_check(xcb_connection, chk);
@@ -77,18 +73,6 @@ void bitwindow::onExpose(int x,int y,int width,int height,int count)
 		xcb_disconnect (xcb_connection);
 		exit(-1);
 	}
-#if 0
-	//xcb_rectangle_t rect; rect.x = x; rect.y=y;rect.width=width; rect.height=height;
-	//xcb_poly_rectangle(xcb_connection, window, gcontext, 1, &rect);
-	xcb_segment_t segs[2] = {
-			{	(int16_t)x, (int16_t)y, (int16_t)(x+width), (int16_t)(y+height) },
-			{   (int16_t)x, (int16_t)(y+height), (int16_t)(x+width), (int16_t)y }
-	};
-	xcb_poly_segment(xcb_connection, window, gcontext, 2, segs);
-	//xcb_free_gc(xcb_connection, gcontext);
-	xcb_flush(xcb_connection);
-	clog << __LINE__ << endl;
-#endif
 	xcb_free_gc(xcb_connection, gcontext);
 	repaint();
 

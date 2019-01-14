@@ -6,6 +6,8 @@
  */
 
 #include "XCBWindow.h"
+#include "scene_builder.h"
+#include "engine.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -17,8 +19,6 @@
 #include <xcb/shm.h>
 #include <xcb/xcb_image.h>
 
-#include "scene_builder.h"
-#include "bitbuffer.h"
 #include <iostream>
 using std::cerr;
 using std::endl;
@@ -39,19 +39,31 @@ private:
 	virtual void onKeyPress(const KeyDescriptor& key);
 	xcb_pixmap_t pix;
 };
-BitBuffer screen;
 
-shmwindow::shmwindow(const Rect& rect)
-: XCBWindow(createXcbWindow("shmwindow", rect))
-, pix(0)
+class SHMEngine : public BlittingEngine
 {
-}
-shmwindow* shmwindow::create()
-{
-	shmwindow* w = new shmwindow(Rect((1920-1280)/2,(1080-720)/2,1280,720));
-
-    xcb_shm_query_version_reply_t*  reply;
+public:
+    SHMEngine()
+    {
+        get_shared_memory();
+    }
+    bool supportsBuffer(GraphicsBuffer* buffer) { return true; }
+    GraphicsBuffer* getScreenBuffer()
+    {
+        return screenBuffer;
+    }
+    GraphicsBuffer* makeBuffer(const RectSize& dims);
+    GraphicsBuffer* makeBuffer(const RectSize& dims, void* data, uint32_t rowBytes);
     xcb_shm_segment_info_t          info;
+private:
+    bool get_shared_memory();
+    BasicBuffer* makeBufferInternal(const RectSize& dims);
+    GraphicsBuffer* screenBuffer;
+};
+
+bool SHMEngine::get_shared_memory()
+{
+    xcb_shm_query_version_reply_t*  reply;
 
     reply = xcb_shm_query_version_reply(
     		XCBWindow::xcb_connection,
@@ -74,18 +86,54 @@ shmwindow* shmwindow::create()
     shmctl(info.shmid, IPC_RMID, 0);
 
     uint32_t* data = (uint32_t*)info.shmaddr;
-    screen.mem = (uint8_t*)data; screen.rowbytes=1280*4; screen.dims.width=1280; screen.dims.height=720;
+    screenBuffer = makeBuffer(RectSize(1280,720), info.shmaddr, 1280*4);
+    return true;
+}
 
+GraphicsBuffer* SHMEngine::makeBuffer(const RectSize& dims)
+{
+	return makeBufferInternal(dims);
+}
+GraphicsBuffer* SHMEngine::makeBuffer(const RectSize& dims, void* data, uint32_t rowBytes)
+{
+	auto r =  new BasicBuffer();
+	r->dims = dims;
+	r->rowbytes = rowBytes;
+	r->mem =  static_cast<uint8_t*>(data);
+	return r;
+}
+BasicBuffer* SHMEngine::makeBufferInternal(const RectSize& dims)
+{
+	auto r =  new BasicBuffer();
+	r->dims = dims;
+	r->rowbytes = dims.width*4;
+	r->mem =  new uint8_t[dims.width*4*dims.height];
+	return r;
+}
+
+SHMEngine* engine;
+
+shmwindow::shmwindow(const Rect& rect)
+: XCBWindow(createXcbWindow("shmwindow", rect))
+, pix(0)
+{
+}
+shmwindow* shmwindow::create()
+{
+	shmwindow* w = new shmwindow(Rect((1920-1280)/2,(1080-720)/2,1280,720));
+
+    engine = new SHMEngine();
     w->pix = xcb_generate_id(XCBWindow::xcb_connection);
-    xcb_shm_create_pixmap(
+    auto cookie = xcb_shm_create_pixmap(
     	XCBWindow::xcb_connection,
         w->pix,
         w->getWindow(),
         1280, 720,
         XCBWindow::xcb_screen->root_depth,
-        info.shmseg,
+        engine->info.shmseg,
         0
     );
+    clog << "xcb_shm_create_pixmap cookie " << cookie.sequence << endl;
 	return w;
 }
 void shmwindow::repaint()
@@ -238,11 +286,13 @@ int main(int argc, char** argv)
 	shmwindow* win = shmwindow::create();
     //xcb_gcontext_t          gcontext;
 	win->configure(Rect((1920-1280)/2,(1080-720)/2,1280,720));
-    win->builder.parse_containers(argv[1]);
+    auto engine = init_base_engine();
+    auto screen = engine->getScreenBuffer();
+    win->builder.parse_containers(argv[1], engine);
     Scene scene;
 	scene.containers = win->builder.nc;
 	scene.assets = win->builder.na;
-    draw_scene(scene, screen);
+    draw_scene(scene, engine);
 	win->repaint();
 
     //int i = 0;

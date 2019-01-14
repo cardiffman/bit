@@ -9,15 +9,14 @@
 #define BIT_SCENE_H_
 
 #include <vector>
-#include "bitbuffer.h"
 
-struct Area {
-	Area() : x(), y(), width(), height() {}
-	Area(int x, int y, int width, int height) : x(x), y(y), width(width), height(height) {}
-	int x; int y; int width; int height;
-};
+class GraphicsBuffer;
+class GraphicsEngine;
+
+#include "geometry.h"
+
 struct Asset {
-	unsigned id; BitBuffer image;
+	unsigned id; GraphicsBuffer* image;
 };
 struct Container {
 	Area area; unsigned id; unsigned parent_id; unsigned asset_id; unsigned color; unsigned children;
@@ -28,7 +27,7 @@ struct Scene {
 };
 static const unsigned ID_NULL = 0;
 
-void draw_scene(Scene& scene, BitBuffer& buf);
+void draw_scene(Scene& scene, GraphicsEngine* engine);
 
 
 
