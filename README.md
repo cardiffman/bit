@@ -1,9 +1,11 @@
 # bit
-Low-end 2D animation system
+Low-end 2D animation system with a few implementations.
 
 # building
 Create a subdirectory callled 'build' under the bit directory.
-Type cmake .. -DCMAKE_BUILD_TYPE=Debug
+Type 
+
+    cmake .. -DCMAKE_BUILD_TYPE=Debug
 
 # Dependencies
 Most of the dependencies are configured in the top-level CMakeLists.txt file. The project is designed to build
@@ -25,8 +27,9 @@ The assets are kept as another vector. A container that has a bitmap image refer
 
 Once you get to about 40 containers, it is way too hard to populate the vectors used by the rendering code. 
 So a JSMN-based parser supports a notation where containers are objects and can contain a member called 
-  
-   containers which is an array of the child containers.
+containers which is an array of the child containers.
+
+
    {
      "containers": [ { "area": { "x":0, "y":0, "width":1280, "height":720 }, "fill":[255,20,40,70] },
                      {"area": { "x":640, "y":360, "width": 640, "height":360},"asset":"bitmap1"}
@@ -38,3 +41,8 @@ So a JSMN-based parser supports a notation where containers are objects and can 
 JSMN is cloned from https://github.com/zserge/jsmn.git in as the jsmn subdirectory of the bit directory. I build a CMakeLists.txt file there that builds JSMN as a 
 library, which is pretty easy. Instead of building a proper DOM, the parsing code traverses the array of tokens that JSMN provides
 and creates the arrays as it goes.
+
+# Various rendering engines
+The reason there are several programs doing the same thing is to explore the implementation space. We have XCB with and without MIT-SHM, we have SDL code which I'm sure is using OpenGL underneath, we have a GTK setup that uses a little cairo to get things done. There is an abstraction of GraphicsEngine's which can render the scene built by the builder. They have to support the assets the fills and other ways containers get drawn. Right now all these engines use the same code to do this, and only vary in how the graphics get to the screen. I think this could change easily using the present GraphicsEngine abstraction.
+
+that things haven't grown as far as they would. 
