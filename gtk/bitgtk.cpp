@@ -19,41 +19,161 @@
 using std::cout;
 using std::endl;
 
+#define EXPOSE_USES_ENGINE 1
+#ifndef EXPOSE_USES_ENGINE
 //the global pixmap that will serve as our buffer
-static GdkPixmap *pixmap = NULL;
+static GdkPixmap *g_pixmap = NULL;
+#endif
 Scene scene;
 
 #include <gtk/gtk.h>
 
-gboolean on_window_configure_event(GtkWidget * da, GdkEventConfigure * event, gpointer user_data){
-    static int oldw = 0;
-    static int oldh = 0;
-    //make our selves a properly sized pixmap if our window has been resized
-    if (oldw != event->width || oldh != event->height){
-        //create our new pixmap with the correct size.
-        GdkPixmap *tmppixmap = gdk_pixmap_new(da->window, event->width,  event->height, -1);
-        //copy the contents of the old pixmap to the new pixmap.  This keeps ugly uninitialized
-        //pixmaps from being painted upon resize
-        int minw = oldw, minh = oldh;
-        if( event->width < minw ){ minw =  event->width; }
-        if( event->height < minh ){ minh =  event->height; }
-        gdk_draw_drawable(tmppixmap, da->style->fg_gc[GTK_WIDGET_STATE(da)], pixmap, 0, 0, 0, 0, minw, minh);
-        //we're done with our old pixmap, so we can get rid of it and replace it with our properly-sized one.
-        g_object_unref(pixmap);
-        pixmap = tmppixmap;
+struct CairoBuffer : public GraphicsBuffer
+{
+    CairoBuffer(const RectSize& size)
+    {
+        dims = size;
+        surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.width, size.height);
     }
-    oldw = event->width;
-    oldh = event->height;
+    void lock(uint8_t*& buffer, uint32_t& rowbytes)
+    {
+        cairo_surface_flush(surface);
+
+        // modify the image
+        buffer = cairo_image_surface_get_data(surface);
+        rowbytes = cairo_image_surface_get_stride(surface);
+    }
+    void unlock()
+    {
+        // mark the image dirty so Cairo clears its caches.
+        cairo_surface_mark_dirty (surface);
+    }
+    cairo_surface_t* surface;
+};
+
+struct CairoEngine : public GraphicsEngine
+{
+    static CairoEngine* factory()
+    {
+        static CairoEngine* instance = nullptr;
+        if (!instance) instance = new CairoEngine(new CairoBuffer(RectSize(1280, 720)));
+        return instance;
+    }
+    bool supportsBuffer(GraphicsBuffer* buf)
+    {
+        return true;// if it supports lock we can handle it.if (!dynamic_cast<BaseBufffer*>(buf) && !dynamic_cast<CairoBuffe)
+    }
+    GraphicsBuffer* getScreenBuffer()
+    {
+        return screen;
+    }
+    GraphicsBuffer* makeBuffer(const RectSize& size, void* data, uint32_t rowbytes)
+    {
+        return new CairoBuffer(size);
+    }
+    GraphicsBuffer* makeBuffer(const RectSize& size)
+    {
+        return new CairoBuffer(size);
+    }
+    void blit(GraphicsBuffer* dst, int dstX, int dstY, GraphicsBuffer* src, const Area& srcArea)
+    {
+        CairoBuffer* cdst = dynamic_cast<CairoBuffer*>(dst);
+        CairoBuffer* csrc = dynamic_cast<CairoBuffer*>(src);
+        if (!cdst)
+            ;
+        else if (!csrc)
+            ;
+        else
+        {
+            cairo_t* cr = cairo_create(cdst->surface);
+            cairo_set_source_surface(cr, csrc->surface, dstX - srcArea.x, dstY - srcArea.y);
+            cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+            cairo_rectangle(cr, dstX, dstY, srcArea.width, srcArea.height);
+            cairo_fill(cr);
+            cairo_destroy(cr);
+        }
+    }
+    void fill(GraphicsBuffer* dst, const Area& dstArea, uint32_t color)
+    {
+        CairoBuffer* cdst = dynamic_cast<CairoBuffer*>(dst);
+        if (!cdst)
+            ;
+        else
+        {
+            cairo_t* cr = cairo_create(cdst->surface);
+            double r = ((color&0xFF0000)>>16)/255.0;
+            double g = ((color&0xFF00)>> 8)/255.0;
+            double b =  (color&0xFF)       /255.0;
+            double a = ((color&0xFF000000)>>24)/255.0;
+            cairo_set_source_rgba(cr, r, g, b, a);
+            cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+            cairo_rectangle(cr, dstArea.x, dstArea.y, dstArea.width, dstArea.height);
+            cairo_fill(cr);
+            cairo_destroy(cr);
+        }
+    }
+    void stretchSrcCopy(GraphicsBuffer* dst, const Area& dstArea, GraphicsBuffer* src, const Area& srcArea)
+    {
+        CairoBuffer* cdst = dynamic_cast<CairoBuffer*>(dst);
+        CairoBuffer* csrc = dynamic_cast<CairoBuffer*>(src);
+        if (!cdst)
+            ;
+        else if (!csrc)
+            ;
+        else
+        {
+            cairo_t* cr = cairo_create(cdst->surface);
+            cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+            cairo_set_source_surface(cr, csrc->surface, dstArea.x - srcArea.x, dstArea.y - srcArea.y);
+            cairo_rectangle(cr, dstArea.x, dstArea.y, srcArea.width, srcArea.height);
+            cairo_fill(cr);
+            cairo_destroy(cr);
+        }
+    }
+    void stretchSrcOver(GraphicsBuffer* dst, const Area& dstArea, GraphicsBuffer* src, const Area& srcArea)
+    {
+        CairoBuffer* cdst = dynamic_cast<CairoBuffer*>(dst);
+        CairoBuffer* csrc = dynamic_cast<CairoBuffer*>(src);
+        if (!cdst)
+            ;
+        else if (!csrc)
+            ;
+        else
+        {
+            cairo_t* cr = cairo_create(cdst->surface);
+            cairo_set_source_surface(cr, csrc->surface, dstArea.x - srcArea.x, dstArea.y - srcArea.y);
+            cairo_rectangle(cr, dstArea.x, dstArea.y, srcArea.width, srcArea.height);
+            cairo_fill(cr);
+            cairo_destroy(cr);
+        }
+    }
+private:
+    CairoEngine(CairoBuffer* screen)
+    : screen(screen)
+    {
+
+    }
+    CairoBuffer* screen;
+};
+
+
+gboolean on_window_configure_event(GtkWidget * da, GdkEventConfigure * event, gpointer user_data){
+    #ifndef EXPOSE_USES_ENGINE
+    #else
+    // Need something, maybe
+    #endif
     return TRUE;
 }
 
 gboolean on_window_expose_event(GtkWidget * da, GdkEventExpose * event, gpointer user_data){
-    gdk_draw_drawable(da->window,
-        da->style->fg_gc[GTK_WIDGET_STATE(da)], pixmap,
-        // Only copy the area that was exposed.
-        event->area.x, event->area.y,
-        event->area.x, event->area.y,
-        event->area.width, event->area.height);
+    cairo_t* win = gdk_cairo_create(da->window);
+    CairoEngine* engine = (CairoEngine*)user_data;
+    GraphicsBuffer* generic_buf = engine->getScreenBuffer();
+    CairoBuffer* cairo_buf = dynamic_cast<CairoBuffer*>(generic_buf);
+    cairo_surface_t* buf_surf = cairo_buf->surface;
+    cairo_set_source_surface(win, buf_surf, 0, 0);
+    cairo_paint(win);
+    cairo_destroy(win);
     return TRUE;
 }
 gboolean on_key_press(GtkWidget* da, GdkEventKey* event, gpointer user_data)
@@ -68,25 +188,6 @@ gboolean on_key_release(GtkWidget* da, GdkEventKey* event, gpointer user_data)
 	GDK_KEY_space;
 	return TRUE;
 }
-struct CairoBuffer : public GraphicsBuffer
-{
-    CairoBuffer(const RectSize& size)
-    {
-        this->dims = size;
-        rowbytes = cairo_format_stride_for_width(CAIRO_FORMAT_ARGB32, size.width);
-        mem = (uint8_t*)malloc(rowbytes * dims.height);
-        memset(mem, 0, rowbytes * dims.height);
-    }
-    void lock(uint8_t*& buffer, uint32_t& rowbytes)
-    {
-        buffer = mem;
-        rowbytes = this->rowbytes;
-    }
-    void unlock() {}
-    uint8_t* mem;
-    uint32_t rowbytes;
-};
-
 int main (int argc, char *argv[]){
 
     //we need to initialize all these functions so that gtk knows
@@ -96,64 +197,55 @@ int main (int argc, char *argv[]){
     gdk_threads_enter();
 
     gtk_init(&argc, &argv);
+    try {
+        GraphicsEngine* engine = CairoEngine::factory();//init_base_engine(new CairoBuffer(RectSize(1280,720)));
 
-    GtkWidget *window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
-    gtk_widget_set_size_request (window, 1280, 720);
-    gtk_widget_add_events(window, GDK_KEY_PRESS_MASK);
-    g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
-    g_signal_connect(G_OBJECT(window), "expose_event", G_CALLBACK(on_window_expose_event), NULL);
-    g_signal_connect(G_OBJECT(window), "configure_event", G_CALLBACK(on_window_configure_event), NULL);
 
-    g_signal_connect (G_OBJECT (window), "key_press_event", G_CALLBACK (on_key_press), NULL);
-    g_signal_connect (G_OBJECT (window), "key_release_event", G_CALLBACK (on_key_release), NULL);
 
-    gtk_widget_show_all(window);
+        GtkWidget *window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+        gtk_widget_set_size_request (window, 1280, 720);
+        gtk_widget_add_events(window, GDK_KEY_PRESS_MASK  | GDK_EXPOSURE_MASK);
+        g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
+        g_signal_connect(G_OBJECT(window), "expose_event", G_CALLBACK(on_window_expose_event), engine);
+        g_signal_connect(G_OBJECT(window), "configure_event", G_CALLBACK(on_window_configure_event), NULL);
 
-    GdkPixmap *tmppixmap = gdk_pixmap_new(window->window, 1280,  720, -1);
-    {
-    cairo_t *cr_pixmap = gdk_cairo_create(tmppixmap);
-    cairo_set_source_rgb (cr_pixmap, 250, 0, 0);
-    cairo_paint(cr_pixmap);
-    cairo_destroy(cr_pixmap);
-    pixmap = tmppixmap;
-    }
-    int width=1280, height=720;
-    //cairo_surface_t *cst = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+        g_signal_connect (G_OBJECT (window), "key_press_event", G_CALLBACK (on_key_press), NULL);
+        g_signal_connect (G_OBJECT (window), "key_release_event", G_CALLBACK (on_key_release), NULL);
 
-    GraphicsEngine* engine = init_base_engine(new CairoBuffer(RectSize(1280,720)));
+        gtk_widget_show_all(window);
 
-	SceneBuilder builder;
-    if (argc > 1)
-    {
-        try {
-            builder.parse_containers(argv[1], engine);
-        } catch (char const * ex) {
-            cout << "Exception " << ex << endl;
-            return 1;
-        } catch (const std::string& ex) {
-            cout << "Exception " << ex << endl;
-            return 1;
+        int width=1280, height=720;
+
+        SceneBuilder builder;
+        if (argc > 1)
+        {
+            try {
+                builder.parse_containers(argv[1], engine);
+            } catch (char const * ex) {
+                cout << "Exception " << ex << endl;
+                return 1;
+            } catch (const std::string& ex) {
+                cout << "Exception " << ex << endl;
+                return 1;
+            }
+            scene.containers = builder.nc;
+            scene.assets = builder.na;
         }
-        scene.containers = builder.nc;
-        scene.assets = builder.na;
+        else
+        {
+            scene.containers.push_back(Container());
+            scene.containers.push_back(Container({{ 0,0,1280,720 },1,0,0,0xFF00FF00}));
+            scene.assets.push_back(Asset());
+        }
+        draw_scene(scene, engine);
+        gtk_widget_queue_draw_area(window, 0, 0, 1280, 720);
+    } catch (char const * ex) {
+        cout << "Exception " << ex << endl;
+        return 1;
+    } catch (const std::string& ex) {
+        cout << "Exception " << ex << endl;
+        return 1;
     }
-    else
-    {
-        scene.containers.push_back(Container());
-        scene.containers.push_back(Container({{ 0,0,1280,720 },1,0,0,0xFFFF0000}));
-        scene.assets.push_back(Asset());
-    }
-    draw_scene(scene, engine);
-    auto screen = engine->getScreenBuffer();
-    uint8_t* scrmem; uint32_t pitch;
-    screen->lock(scrmem, pitch);
-    cairo_surface_t *cst = cairo_image_surface_create_for_data(scrmem, CAIRO_FORMAT_ARGB32, width, height, pitch);
-
-    cairo_t *cr_pixmap = gdk_cairo_create(pixmap);
-    cairo_set_source_surface (cr_pixmap, cst, 0, 0);
-    cairo_paint(cr_pixmap);
-    cairo_destroy(cr_pixmap);
-    screen->unlock();
 
     gtk_main();
     gdk_threads_leave();
