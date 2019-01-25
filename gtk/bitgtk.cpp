@@ -35,6 +35,11 @@ struct CairoBuffer : public GraphicsBuffer
         dims = size;
         surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.width, size.height);
     }
+    CairoBuffer(const RectSize& size, void* data, unsigned rowbytes)
+    {
+        dims = size;
+        surface = cairo_image_surface_create_for_data((uint8_t*)data, CAIRO_FORMAT_ARGB32, size.width, size.height, rowbytes);
+    }
     void lock(uint8_t*& buffer, uint32_t& rowbytes)
     {
         cairo_surface_flush(surface);
@@ -69,7 +74,7 @@ struct CairoEngine : public GraphicsEngine
     }
     GraphicsBuffer* makeBuffer(const RectSize& size, void* data, uint32_t rowbytes)
     {
-        return new CairoBuffer(size);
+        return new CairoBuffer(size, data, rowbytes);
     }
     GraphicsBuffer* makeBuffer(const RectSize& size)
     {
