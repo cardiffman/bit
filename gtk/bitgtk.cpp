@@ -119,6 +119,11 @@ struct CairoEngine : public GraphicsEngine
     }
     void stretchSrcCopy(GraphicsBuffer* dst, const Area& dstArea, GraphicsBuffer* src, const Area& srcArea)
     {
+        if (srcArea.width == dstArea.width && srcArea.height == dstArea.height)
+        {
+            blit(dst, dstArea.x, dstArea.y, src, srcArea);
+            return;
+        }
         CairoBuffer* cdst = dynamic_cast<CairoBuffer*>(dst);
         CairoBuffer* csrc = dynamic_cast<CairoBuffer*>(src);
         if (!cdst)
@@ -129,9 +134,16 @@ struct CairoEngine : public GraphicsEngine
         {
             cairo_t* cr = cairo_create(cdst->surface);
             cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
-            cairo_set_source_surface(cr, csrc->surface, dstArea.x - srcArea.x, dstArea.y - srcArea.y);
-            cairo_rectangle(cr, dstArea.x, dstArea.y, srcArea.width, srcArea.height);
-            cairo_fill(cr);
+            cairo_save(cr);
+            /* CAIRO_OPERATOR_SOURCE has an unbounded interpretation
+            so we need a clipping region to keep from drawing outside dstArea
+            */
+            cairo_rectangle(cr, dstArea.x, dstArea.y, dstArea.width, dstArea.height);
+            cairo_clip(cr);
+            cairo_scale(cr, 1.*dstArea.width/srcArea.width, 1.*dstArea.height/srcArea.height);
+            cairo_set_source_surface(cr, csrc->surface, 1.*dstArea.x*srcArea.width/dstArea.width - 1.*srcArea.x*srcArea.width/dstArea.width, dstArea.y*1.*srcArea.height/dstArea.height - srcArea.y);
+            cairo_paint(cr);
+            cairo_restore(cr);
             cairo_destroy(cr);
         }
     }
@@ -146,9 +158,14 @@ struct CairoEngine : public GraphicsEngine
         else
         {
             cairo_t* cr = cairo_create(cdst->surface);
-            cairo_set_source_surface(cr, csrc->surface, dstArea.x - srcArea.x, dstArea.y - srcArea.y);
-            cairo_rectangle(cr, dstArea.x, dstArea.y, srcArea.width, srcArea.height);
-            cairo_fill(cr);
+            cairo_save(cr);
+            /* CAIRO_OPERATOR_OVER has a bounded interpretation
+            so we don't need a clipping region to keep from drawing outside dstArea
+            */
+            cairo_scale(cr, 1.*dstArea.width/srcArea.width, 1.*dstArea.height/srcArea.height);
+            cairo_set_source_surface(cr, csrc->surface, 1.*dstArea.x*srcArea.width/dstArea.width - 1.*srcArea.x*srcArea.width/dstArea.width, dstArea.y*1.*srcArea.height/dstArea.height - srcArea.y);
+            cairo_paint(cr);
+            cairo_restore(cr);
             cairo_destroy(cr);
         }
     }
