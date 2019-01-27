@@ -161,7 +161,6 @@ void draw_container(const Container& g, Scene& scene, GraphicsBuffer* screen, Gr
 			cout << "Container " << g.id << " asset " << asset.id << " clipped out" << endl;
 			return;
 		}
-		asset_area;
 		bool unscaled = g.area.width == asset.image->dims.width && g.area.height == asset.image->dims.height;
 		cout << "Drawing asset " << asset.id << " for container " << g.id << ' ' << (unscaled?"unscaled":"scaled") <<" at " << asset_draw << " from " << asset.image->dims << " as " << asset_screen << " csc " << draw << " cs " << container_screen << endl;
 		// If the asset area and the container area are equal then

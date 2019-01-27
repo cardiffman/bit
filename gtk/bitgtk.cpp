@@ -85,9 +85,9 @@ struct CairoEngine : public GraphicsEngine
         CairoBuffer* cdst = dynamic_cast<CairoBuffer*>(dst);
         CairoBuffer* csrc = dynamic_cast<CairoBuffer*>(src);
         if (!cdst)
-            ;
+            return;
         else if (!csrc)
-            ;
+            return;
         else
         {
             cairo_t* cr = cairo_create(cdst->surface);
@@ -102,7 +102,7 @@ struct CairoEngine : public GraphicsEngine
     {
         CairoBuffer* cdst = dynamic_cast<CairoBuffer*>(dst);
         if (!cdst)
-            ;
+            return;
         else
         {
             cairo_t* cr = cairo_create(cdst->surface);
@@ -127,9 +127,9 @@ struct CairoEngine : public GraphicsEngine
         CairoBuffer* cdst = dynamic_cast<CairoBuffer*>(dst);
         CairoBuffer* csrc = dynamic_cast<CairoBuffer*>(src);
         if (!cdst)
-            ;
+            return;
         else if (!csrc)
-            ;
+            return;
         else
         {
             cairo_t* cr = cairo_create(cdst->surface);
@@ -152,9 +152,9 @@ struct CairoEngine : public GraphicsEngine
         CairoBuffer* cdst = dynamic_cast<CairoBuffer*>(dst);
         CairoBuffer* csrc = dynamic_cast<CairoBuffer*>(src);
         if (!cdst)
-            ;
+            return;
         else if (!csrc)
-            ;
+            return;
         else
         {
             cairo_t* cr = cairo_create(cdst->surface);
