@@ -117,6 +117,7 @@ void SceneBuilder::container_read(const std::string& text, std::vector<jsmntok_t
 		c.id = container_id;
 		c.parent_id = parent;
 		c.asset_id = 0;
+		c.color = 0;
 		for (int i=0; i<members; ++i)
 		{
 			if (ptokens->type == JSMN_STRING)
