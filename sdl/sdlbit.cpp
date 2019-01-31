@@ -33,6 +33,147 @@ void logSDLError(std::ostream &os, const std::string &msg){
 	os << msg << " error: " << SDL_GetError() << std::endl;
 }
 
+class SDLScreenBuffer : public GraphicsBuffer
+{
+public:
+	SDLScreenBuffer(SDL_Window *window);
+	~SDLScreenBuffer() { cleanup(renderer); }
+	void lock(uint8_t*& pixels, uint32_t& rowBytes) { pixels = nullptr; rowBytes = 0; }
+	void unlock() {}
+	SDL_Renderer *renderer;
+private:
+	friend class SDLEngine;
+};
+
+class SDLBuffer : public GraphicsBuffer
+{
+public:
+	SDLBuffer(SDL_Renderer* renderer, const RectSize& dims, void* data, uint32_t rowBytes);
+	SDLBuffer(SDL_Renderer* renderer, const RectSize& dims);
+	~SDLBuffer()
+	{
+		cleanup(sdlTexture);
+	}
+	void lock(uint8_t*& pixels, uint32_t& rowBytes) { pixels = nullptr; rowBytes = 0; }
+	void unlock() {}
+	SDL_Texture* sdlTexture;
+private:
+};
+
+class SDLEngine : public BlittingEngine
+{
+public:
+	SDLEngine(SDL_Window* window);
+	~SDLEngine() { delete screen; }
+	bool supportsBuffer(GraphicsBuffer* b)
+	{
+		return true;
+	}
+	GraphicsBuffer* getScreenBuffer();
+	GraphicsBuffer* makeBuffer(const RectSize& dims);
+	GraphicsBuffer* makeBuffer(const RectSize& dims, void* data, uint32_t rowBytes);
+	void fill(GraphicsBuffer* dst, const Area& dstArea, uint32_t color);
+	void blit(GraphicsBuffer* dst, int dstX, int dstY, GraphicsBuffer* src, const Area& srcArea);
+	void stretchSrcCopy(GraphicsBuffer* dst, const Area& dstArea, GraphicsBuffer* src, const Area& srcArea);
+	void stretchSrcOver(GraphicsBuffer* dst, const Area& dstArea, GraphicsBuffer* src, const Area& srcArea);
+	SDLScreenBuffer* screen;
+private:
+	SDL_Window* window;
+};
+
+SDLScreenBuffer::SDLScreenBuffer(SDL_Window *window)
+{
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	if (renderer == nullptr){
+		logSDLError(std::cout, "CreateRenderer");
+		throw "CreateRenderer";
+	}
+}
+
+SDLBuffer::SDLBuffer(SDL_Renderer* renderer, const RectSize& dims, void* data, uint32_t rowBytes)
+{
+	this->dims = dims;
+	auto sdlSurface = SDL_CreateRGBSurfaceFrom(data, dims.width, dims.height, 32, rowBytes, 0x00FF0000, 0x0000FF00, 0x000000FF, 0xFF000000);
+	if (!sdlSurface)
+		throw "SDLBuffer from data";
+	sdlTexture = SDL_CreateTextureFromSurface(renderer, sdlSurface);
+	if (!sdlTexture)
+	{
+		logSDLError(std::cout, "CreateTextureFromSurface");
+		throw "CreateTextureFromSurface";
+	}
+	cleanup(sdlSurface);
+}
+SDLBuffer::SDLBuffer(SDL_Renderer* renderer, const RectSize& dims)
+{
+	throw "streaming texture";
+	sdlTexture = SDL_CreateTexture(renderer,
+										SDL_PIXELFORMAT_ARGB8888,
+										SDL_TEXTUREACCESS_STREAMING,
+										dims.width, dims.height);
+	if (!sdlTexture)
+	{
+		logSDLError(std::cout, "CreateTexture");
+		throw "CreateTexture";
+	}
+}
+SDLEngine::SDLEngine(SDL_Window* window) : screen(0), window(window)
+{
+	screen = new SDLScreenBuffer(window);
+}
+
+GraphicsBuffer* SDLEngine::getScreenBuffer()
+{
+	if (screen == nullptr)
+		screen = new SDLScreenBuffer(window);
+	return screen;
+}
+GraphicsBuffer* SDLEngine::makeBuffer(const RectSize& dims, void* data, uint32_t rowBytes)
+{
+	return new SDLBuffer(screen->renderer, dims, data, rowBytes);
+}
+GraphicsBuffer* SDLEngine::makeBuffer(const RectSize& dims)
+{
+	return new SDLBuffer(screen->renderer, dims);
+}
+void SDLEngine::fill(GraphicsBuffer* dst, const Area& dstArea, uint32_t color)
+{
+	SDLScreenBuffer* cdst = dynamic_cast<SDLScreenBuffer*>(dst);
+	SDL_SetRenderDrawColor(screen->renderer, (color&0x00FF0000)>>16, (color&0x0000FF00)>>8, (color&0x000000FF), (color&0xFF000000)>>24);
+	SDL_Rect dstRect = {dstArea.x, dstArea.y, dstArea.width, dstArea.height};
+	SDL_RenderFillRect(screen->renderer, &dstRect);
+}
+
+void SDLEngine::blit(GraphicsBuffer* dst, int dstX, int dstY, GraphicsBuffer* src, const Area& srcArea)
+{
+	SDLScreenBuffer* cdst = dynamic_cast<SDLScreenBuffer*>(dst);
+	SDLBuffer* csrc = dynamic_cast<SDLBuffer*>(src);
+	SDL_Rect dstRect = {dstX, dstY, srcArea.width, srcArea.height};
+	SDL_Rect srcRect = {srcArea.x, srcArea.y, srcArea.width, srcArea.height};
+	SDL_SetTextureBlendMode(csrc->sdlTexture, SDL_BLENDMODE_NONE);
+	SDL_RenderCopy(cdst->renderer, csrc->sdlTexture, &srcRect, &dstRect);
+}
+
+void SDLEngine::stretchSrcCopy(GraphicsBuffer* dst, const Area& dstArea, GraphicsBuffer* src, const Area& srcArea)
+{
+	SDLScreenBuffer* cdst = dynamic_cast<SDLScreenBuffer*>(dst);
+	SDLBuffer* csrc = dynamic_cast<SDLBuffer*>(src);
+	SDL_Rect dstRect = {dstArea.x, dstArea.y, dstArea.width, dstArea.height};
+	SDL_Rect srcRect = {srcArea.x, srcArea.y, srcArea.width, srcArea.height};
+	SDL_SetTextureBlendMode(csrc->sdlTexture, SDL_BLENDMODE_NONE);
+	SDL_RenderCopy(cdst->renderer, csrc->sdlTexture, &srcRect, &dstRect);
+}
+
+void SDLEngine::stretchSrcOver(GraphicsBuffer* dst, const Area& dstArea, GraphicsBuffer* src, const Area& srcArea)
+{
+	SDLScreenBuffer* cdst = dynamic_cast<SDLScreenBuffer*>(dst);
+	SDLBuffer* csrc = dynamic_cast<SDLBuffer*>(src);
+	SDL_Rect dstRect = {dstArea.x, dstArea.y, dstArea.width, dstArea.height};
+	SDL_Rect srcRect = {srcArea.x, srcArea.y, srcArea.width, srcArea.height};
+	SDL_SetTextureBlendMode(csrc->sdlTexture, SDL_BLENDMODE_BLEND);
+	SDL_RenderCopy(cdst->renderer, csrc->sdlTexture, &srcRect, &dstRect);
+}
+
 /*
  * Render the message we want to display to a texture for drawing
  * @param message The message we want to display
@@ -86,22 +227,15 @@ int main(int argc, char** argv){
 		SDL_Quit();
 		return 1;
 	}
-	SDL_Renderer *renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-	if (renderer == nullptr){
-		logSDLError(std::cout, "CreateRenderer");
-		cleanup(window);
-		SDL_Quit();
-		return 1;
-	}
-    int width=SCREEN_WIDTH, height=SCREEN_HEIGHT;
+	{
+	SDLEngine engine(window);
 
-	auto engine = init_base_engine();
 
 	SceneBuilder builder;
 	if (argc > 1)
 	{
 		try {
-			builder.parse_containers(argv[1], engine);
+			builder.parse_containers(argv[1], &engine);
 		} catch (char const * ex) {
 			cout << "Exception " << ex << endl;
 			return 1;
@@ -118,47 +252,8 @@ int main(int argc, char** argv){
 		scene.containers.push_back(Container({{ 0,0,SCREEN_WIDTH,SCREEN_HEIGHT },1,0,0,0xFFFF0000}));
 		scene.assets = {{0}};
 	}
-	auto sdlTexture = SDL_CreateTexture(renderer,
-										SDL_PIXELFORMAT_ARGB8888,
-										SDL_TEXTUREACCESS_STREAMING,
-										SCREEN_WIDTH, SCREEN_HEIGHT);
-	if (!sdlTexture)
-	{
-		logSDLError(std::cout, "CreateTexture");
-		cleanup(window);
-		SDL_Quit();
-		exit(1);
-	}
-
-	void *texmem; int tex_rowbytes;
-	if (0 != SDL_LockTexture(sdlTexture, NULL, (&texmem), &tex_rowbytes))
-	{
-		logSDLError(std::cout, "138 LockTexture");
-		cleanup(window, sdlTexture);
-		SDL_Quit();
-		exit(1);
-	}
-	draw_scene(scene, engine);
-	SDL_UnlockTexture(sdlTexture);
-	uint8_t *scrmem; uint32_t scr_rowbytes;
-	engine->getScreenBuffer()->lock(scrmem, scr_rowbytes);
-	if (0 != SDL_LockTexture(sdlTexture, NULL, (&texmem), &tex_rowbytes))
-	{
-		logSDLError(std::cout, "147 LockTexture");
-		cleanup(window, sdlTexture);
-		SDL_Quit();
-		exit(1);
-	}
-	for (int y = 0; y < 720; ++y)
-	{
-		memcpy(texmem, scrmem, 4 * 1280);
-		texmem = (uint8_t *)texmem + tex_rowbytes;
-		scrmem = scrmem += scr_rowbytes;
-	}
-
-	SDL_UnlockTexture(sdlTexture);
-	SDL_RenderCopy(renderer, sdlTexture, NULL, NULL);
-	SDL_RenderPresent(renderer);
+	draw_scene(scene, &engine);
+	SDL_RenderPresent(engine.screen->renderer);
 
 	SDL_Event e;
 	bool quit = false;
@@ -174,8 +269,9 @@ int main(int argc, char** argv){
 			}
 		}
 	}
+	}
 	//Clean up
-	cleanup(renderer, window);
+	cleanup(window);
 	IMG_Quit();
 	SDL_Quit();
 	return 0;
