@@ -120,7 +120,6 @@ int read_JPEG_file (const char * filename, GraphicsEngine* engine, GraphicsBuffe
   uint32_t rowBytes = (cinfo.output_width * cinfo.output_components + 3) & ~3;
   auto mem = (uint8_t*)malloc(cinfo.output_height * rowBytes);
 
-  GraphicsBuffer* myBuffer = engine->makeBuffer(RectSize(cinfo.output_width, cinfo.output_height), mem, rowBytes);
   uint8_t* output_line = mem;
   /* JSAMPLEs per row in output buffer */
   row_stride = cinfo.output_width * cinfo.output_components;
@@ -143,6 +142,7 @@ int read_JPEG_file (const char * filename, GraphicsEngine* engine, GraphicsBuffe
     memcpy(output_line, buffer[0], row_stride);
     output_line += rowBytes;
   }
+  GraphicsBuffer* myBuffer = engine->makeBuffer(RectSize(cinfo.output_width, cinfo.output_height), mem, rowBytes);
 
   /* Step 7: Finish decompression */
 
