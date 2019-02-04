@@ -38,8 +38,8 @@ int main(int argc, char *argv[])
 	glfwSetErrorCallback(glfwErrorCallback);
     glfwInit();
 	std::cout << "About to set glfw Hints" << std::endl;
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
+    //glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+    //glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 1);
     //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_COMPAT_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GL_FALSE);
@@ -51,10 +51,23 @@ int main(int argc, char *argv[])
 	std::cout << "About to make GLFW window current" << std::endl;
     glfwMakeContextCurrent(window);
 
-    //glewExperimental = GL_TRUE;
+    glewExperimental = GL_TRUE;
 	std::cout << "About to init glewInit with " << (bool)glewExperimental << std::endl;
     glewInit();
     glGetError(); // Call it once to catch glewInit() bug, all other errors are now from our application.
+    if (GLEW_ARB_vertex_array_object)
+    {
+        std::cout << "Vertex Array Objects supported" << std::endl;
+    }
+    else
+    {
+        std::cout << "Vertex Array Objects not supported" << std::endl;
+    }
+    std::cout << "GL_VERSION: " << glGetString(GL_VERSION) << std::endl;
+    std::cout << "GL_EXTENSIONS: " << glGetString(GL_EXTENSIONS) << std::endl;
+    std::cout << "GL_VENDOR: " << glGetString(GL_VENDOR) << std::endl;
+    std::cout << "GL_RENDERER: " << glGetString(GL_RENDERER) << std::endl;
+    std::cout << "GL_SHADING_LANGUAGE_VERSION: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
 
     glfwSetKeyCallback(window, key_callback);
 
