@@ -519,6 +519,41 @@ bool SceneBuilder::by_id(const Container& a, const Container& b)
 {
 	return a.id < b.id;
 }
+void SceneBuilder::parse_containers_from_string(const char* text, GraphicsEngine* engine)
+{
+	std::vector<jsmntok_t> tokens;
+	std::string jstext = text;
+	tokenize_json_text(tokens, jstext);
+	cout << "js: chars provided " << jstext.size() << endl;
+	// refactoring opportunity
+	//dump_jstokens(tokens, jstext);
+	auto ptokens = tokens.begin();
+	cout << "Scene" << endl;
+	scene_read(&jstext[0], ptokens);
+	cout << "Thats it" << endl;
+	nc.insert(nc.begin(), Container());
+	std::sort(nc.begin(), nc.end(), by_id);
+	for (auto& g : nc) {
+		g.children = 0;
+	}
+	for (auto& g : nc) {
+		if (g.parent_id != ID_NULL)
+			nc[g.parent_id].children++;
+	}
+	na.insert(na.begin(), Asset());
+	//print_scene();
+	for (auto u : urls_by_id)
+	{
+		if (u.second.find(".jpg")!=-1)
+		{
+			read_JPEG_file(u.second.c_str(), engine, na[u.first].image);
+		} else if (u.second.find(".png")!=-1)
+		{
+			read_png_file(u.second.c_str(), engine, na[u.first].image);
+		}
+	}
+	print_scene();
+}
 void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 {
 	std::vector<jsmntok_t> tokens;

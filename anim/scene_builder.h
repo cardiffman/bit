@@ -40,6 +40,7 @@ struct SceneBuilder
 	int asset_id;
 	SceneBuilder();
 	void parse_containers(const char* file, GraphicsEngine* engine);
+	void parse_containers_from_string(const char* text, GraphicsEngine* engine);
 private:
 	void parse_asset_label(unsigned& id, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void parse_color(unsigned& color, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
