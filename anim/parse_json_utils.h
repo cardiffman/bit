@@ -13,6 +13,8 @@
 #include <string>
 
 bool tokenize_json(const char* file, std::vector<jsmntok_t>& tokens, std::string& jstext);
+bool tokenize_json_text(std::vector<jsmntok_t>& tokens, std::string& jstext);
+
 void dump_jstokens(const std::vector<jsmntok_t>& tokens, const std::string& jstext);
 
 

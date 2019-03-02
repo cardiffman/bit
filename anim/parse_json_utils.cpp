@@ -24,11 +24,30 @@ bool tokenize_json(const char* file, std::vector<jsmntok_t>& tokens, std::string
 	lseek(fd, 0, SEEK_SET);
 	jstext.resize(jslength);
 	read(fd, &jstext[0], jslength);
-	int tokes = jsmn_parse(&jp, jstext.data(), jslength, NULL, 0);
+	return tokenize_json_text(tokens, jstext);
+}
+bool tokenize_json_text(std::vector<jsmntok_t>& tokens, std::string& jstext)
+{
+	jsmn_parser jp;
+	jsmn_init(&jp);
+	int tokes = jsmn_parse(&jp, jstext.data(), jstext.length(), NULL, 0);
+	if (tokes < 1)
+	{
+		switch (tokes)
+		{
+		/* Not enough tokens were provided */
+		case JSMN_ERROR_NOMEM: throw "JSMN_ERROR_NOMEM"; return false;
+		/* Invalid character inside JSON string */
+		case JSMN_ERROR_INVAL: throw "JSMN_ERROR_INVAL"; return false;
+		/* The string is not a full JSON packet, more bytes expected */
+		case JSMN_ERROR_PART: throw "JSMN_ERROR_PART"; return false;
+		case 0: throw "Not even one token"; return false;
+		}
+		return false;
+	}
 	tokens.resize(tokes);
 	jsmn_init(&jp);
-	jsmn_parse(&jp, jstext.data(), jslength, tokens.data(), tokes);
-	close(fd);
+	jsmn_parse(&jp, jstext.data(), jstext.length(), tokens.data(), tokes);
 	return true;
 }
 void dump_jstokens(const std::vector<jsmntok_t>& tokens, const std::string& jstext)
