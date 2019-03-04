@@ -12,12 +12,24 @@
 #include "read_png_file.h"
 #include "parse_json_utils.h"
 #include <algorithm>
+#include "ft2build.h"
+#include FT_FREETYPE_H
+
 using std::cout;
 using std::endl;
 
 SceneBuilder::SceneBuilder() {
 	container_id = 0;
 	asset_id = 0;
+}
+void SceneBuilder::parse_text(Container& c, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
+{
+	auto t = text.substr(ptokens->start, ptokens->end-ptokens->start);
+	text_by_id[++asset_id] = t;
+	Asset a;
+	a.id = asset_id;
+	na.push_back(a);
+	c.asset_id = asset_id;
 }
 void SceneBuilder::parse_asset_label(unsigned& id, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
@@ -27,6 +39,18 @@ void SceneBuilder::parse_asset_label(unsigned& id, const std::string& text, std:
 		auto asset_label = text.substr(ptokens->start, ptokens->end-ptokens->start);
 		++ptokens;
 		Asset a;
+		if (asset_label.find(".png")!=std::string::npos || asset_label.find(".jpeg")!=std::string::npos || asset_label.find(".jpg")!=std::string::npos)
+		{
+			++asset_id;
+			//cout << "Unlabeled asset " << asset_label << " asset id " << asset_id << endl;
+			id = asset_id;
+			a.id = id;
+			na.push_back(a);
+			named_a[asset_label] = a;
+			auto url = asset_label;
+			urls_by_id[a.id] = url;
+			return;
+		}
 		if (named_a.count(asset_label))
 		{
 			a = named_a[asset_label];
@@ -145,6 +169,10 @@ void SceneBuilder::container_read(const std::string& text, std::vector<jsmntok_t
 				else if (member_name == "asset")
 				{
 					parse_asset_label(c.asset_id, text, ptokens);
+				}
+				else if (member_name == "text")
+				{
+					parse_text(c, text, ptokens);
 				}
 				else if (member_name == "containers")
 				{
@@ -554,6 +582,18 @@ void SceneBuilder::parse_containers_from_string(const char* text, GraphicsEngine
 	}
 	print_scene();
 }
+void draw_glyph(uint8_t* buf_ptr, uint32_t buf_pitch, uint8_t* bitmap, const Area& area, int pen_x, int pen_y)
+{
+	uint8_t* buf = buf_ptr+4*pen_x;
+	for (int i=0; i<area.height; i++)
+	{
+		for (int j=0; j<area.width; ++j)
+		{
+			((uint32_t*)buf)[j] = bitmap[i*area.width+j]*0x01010101;
+		}
+		buf += buf_pitch;
+	}
+}
 void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 {
 	std::vector<jsmntok_t> tokens;
@@ -585,6 +625,132 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 		{
 			read_png_file(u.second.c_str(), engine, na[u.first].image);
 		}
+	}
+	FT_Library library;
+	int fterror = FT_Init_FreeType(&library);
+	for (auto t:text_by_id)
+	{
+		FT_Face face;
+		if (fterror)
+		{
+			puts("freetype library");
+			exit(1);
+		}
+		fterror = FT_New_Face(library, "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 0, &face);
+		if (fterror == FT_Err_Unknown_File_Format)
+		{
+			puts("Font not valid");
+			exit(1);
+		}
+		else if (fterror)
+		{
+			printf("FreeType error %d\n", fterror);
+			exit(1);
+		}
+		else if (face == NULL)
+		{
+			printf("FreeType face is null but no error?\n");
+			exit(1);
+		}
+		fterror = FT_Set_Pixel_Sizes(face, 0, 32); //16 pixels high
+		if (fterror)
+		{
+			cout << "Set pixel sizes failed. " << fterror << endl;
+			continue;  /* ignore errors */
+		}
+		FT_GlyphSlot  slot = face->glyph;  /* a small shortcut */
+		int           pen_x, pen_y, n;
+		FT_UInt  glyph_index;
+
+		pen_x = 0;
+		pen_y = 32;
+		struct Char { FT_UInt glyphIndex; int pen_x;int pen_y;Area a; uint8_t* bitmap; unsigned pitch; };
+		std::vector<Char> chars;
+
+		int height = 0;
+		//cout << "Imaging string " << t.second << endl;
+		for (auto ch : t.second)
+		{
+		  /* retrieve glyph index from character code */
+			Char c;
+			c.glyphIndex = FT_Get_Char_Index( face, ch );
+
+			/* load glyph image into the slot (erase previous one) */
+			fterror = FT_Load_Glyph( face, c.glyphIndex, FT_LOAD_DEFAULT );
+			if ( fterror )
+			{
+				cout << "Load glyph failed" << endl;
+				continue;  /* ignore errors */
+			}
+
+			/* convert to an anti-aliased bitmap */
+			fterror = FT_Render_Glyph( face->glyph, FT_RENDER_MODE_NORMAL );
+			if ( fterror )
+			{
+				cout << "Render glyph failed" << endl;
+				continue;
+			}
+			c.a.width = slot->bitmap.width;
+			c.a.height = slot->bitmap.rows;
+			//cout << "Adding bitmap of height " << c.a.height << " to image" << endl;
+			if (c.a.height > height) height = c.a.height;
+			c.bitmap = new uint8_t[c.a.width*c.a.height];
+			memcpy(c.bitmap, slot->bitmap.buffer, c.a.width*c.a.height);
+			c.pen_x = pen_x;
+			c.pen_y = pen_y;
+
+			///* now, draw to our target surface */
+			//my_draw_bitmap( &slot->bitmap,
+			//				pen_x + slot->bitmap_left,
+			//				pen_y - slot->bitmap_top );
+
+			/* increment pen position */
+			pen_x += slot->advance.x >> 6;
+			pen_y += slot->advance.y >> 6; /* not useful for now */
+			chars.push_back(c);
+		}
+		auto gbuffer = engine->makeBuffer(RectSize(pen_x,height));
+		uint8_t* buf_ptr; uint32_t buf_pitch;
+		gbuffer->lock(buf_ptr, buf_pitch);
+		for (auto c : chars)
+		{
+			c.a;
+			c.bitmap;
+			c.pen_x;
+			c.pen_y;
+			draw_glyph(buf_ptr, buf_pitch, c.bitmap, c.a, c.pen_x, c.pen_y);
+		}
+		gbuffer->unlock();
+		urls_by_id[t.first] = t.second;
+		auto& x = na[t.first];
+		x.image;
+		na[t.first].image = gbuffer;
+#if 0
+		DEST = engine->makeBuffer(dims, mem, rowbytes);
+		xcb_gcontext_t gcontext = xcb_generate_id(xcb_connection);
+		uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND; // | XCB_GC_FONT;
+		uint32_t value_list[3];
+		value_list[0] = xcb_screen->black_pixel;
+		value_list[1] = xcb_screen->white_pixel;
+		//value_list[2] = font;
+		xcb_void_cookie_t cookie_gc = xcb_create_gc_checked(xcb_connection,
+				gcontext, window, mask, value_list);
+		xcb_generic_error_t* error = xcb_request_check(xcb_connection, cookie_gc);
+		xcb_void_cookie_t chk = xcb_put_image_checked(xcb_connection,
+				XCB_IMAGE_FORMAT_Z_PIXMAP, window, gcontext, (uint16_t)1280/*width*/, (uint16_t)720/*height*/, 0,
+				0, 0, XCBWindow::xcb_screen->root_depth, bytes, Mem);
+		xcb_flush(xcb_connection);
+		//cerr << "Image put, checking\n";
+		/*xcb_generic_error_t**/ error = xcb_request_check(xcb_connection, chk);
+		if (error)
+		{
+			cerr << "ERROR: can't put_image :"<<
+					unsigned(error->error_code) << endl;
+			xcb_disconnect(xcb_connection);
+			exit(-1);
+		}
+		xcb_free_gc(xcb_connection, gcontext);
+#endif
 	}
 	print_scene();
 }

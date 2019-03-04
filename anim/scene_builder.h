@@ -24,6 +24,7 @@ struct SceneBuilder
 	std::map<std::string,Asset> named_a;
 	std::map<std::string,int> named_container_ids;
 	std::map<unsigned,std::string> urls_by_id;
+	std::map<unsigned,std::string> text_by_id;
 	struct Parameter {
 		std::string name;
 		std::vector<int> values;
@@ -45,6 +46,7 @@ private:
 	void parse_asset_label(unsigned& id, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void parse_color(unsigned& color, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void parse_area(Area& area, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
+	void parse_text(Container& c, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void scene_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void container_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens, int parent);
 	void asset_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
