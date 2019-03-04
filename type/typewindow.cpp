@@ -44,7 +44,8 @@ void my_draw_bitmap(FT_Bitmap* bitmap, FT_Int x, FT_Int y)
 			if (i < 0 || j < 0 ||
 				i >= 1280 || j >= 720)
 				continue;
-			((uint32_t*)Mem)[j*1280+i] = (255-bitmap->buffer[q * bitmap->width + p])*0x010101+0xFF000000;
+			//((uint32_t*)Mem)[j*1280+i] = (255-bitmap->buffer[q * bitmap->width + p])*0x010101+0xFF000000;
+			((uint32_t*)Mem)[j*1280+i] = (255-bitmap->buffer[q * bitmap->width + p])*0x01010101;
 		}
 	}
 }
@@ -134,22 +135,6 @@ void typewindow::repaint()
 }
 void typewindow::onExpose(int x,int y,int width,int height,int count)
 {
-	xcb_gcontext_t gcontext = xcb_generate_id(xcb_connection);
-	uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND; // | XCB_GC_FONT;
-	uint32_t value_list[3];
-	value_list[0] = xcb_screen->black_pixel;
-	value_list[1] = xcb_screen->white_pixel;
-	//value_list[2] = font;
-	xcb_void_cookie_t cookie_gc = xcb_create_gc_checked(xcb_connection,
-			gcontext, window, mask, value_list);
-	xcb_generic_error_t* error = xcb_request_check(xcb_connection, cookie_gc);
-	if (error)
-	{
-		cerr << "ERROR: can't create gc : " << unsigned(error->error_code) << endl;
-		xcb_disconnect (xcb_connection);
-		exit(-1);
-	}
-	xcb_free_gc(xcb_connection, gcontext);
 	repaint();
 
 }
