@@ -5,6 +5,6 @@ add_library(anim STATIC anim.cpp
 	read_JPEG_file.cpp
 	engine.cpp)
 
-target_include_directories(anim PUBLIC ../jsmn)
+target_include_directories(anim PUBLIC ../jsmn  ${FT_INCLUDE_DIRS})
 
 target_link_libraries(anim jsmn ${PNG_LIBRARIES} ${JPEG_LIBRARIES})

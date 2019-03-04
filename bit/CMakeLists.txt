@@ -19,7 +19,7 @@ message(STATUS "xcbwindow_LIBRARIES ${xcbwindow_LIBRARIES}")
 message(STATUS "PNG_LIBRARIES ${PNG_LIBRARIES}")
 message(STATUS "JPEG_LIBRARIES ${JPEG_LIBRARIES}")
 
-target_link_libraries(bit anim jsmn xcbwindow ${KS_LIBRARIES} ${XCB_LIBRARIES} ${PNG_LIBRARIES} ${JPEG_LIBRARIES})
+target_link_libraries(bit anim jsmn xcbwindow ${KS_LIBRARIES} ${XCB_LIBRARIES} ${PNG_LIBRARIES} ${JPEG_LIBRARIES} ${FT_LIBRARIES})
 target_include_directories(bit PUBLIC ../anim ../jsmn ../XCB ${CMAKE_CURRENT_SOURCE_DIR}/.. ${KS_INCLUDE_DIRS} ${XCB_INCLUDE_DIRS})
 target_compile_options(bit PUBLIC ${SDL2_CFLAGS_OTHER} ${XCB_CFLAGS_OTHER})
 
@@ -27,4 +27,4 @@ add_executable(shmtrial
 	shmtrial.cpp
 	)
 target_include_directories(shmtrial PUBLIC ../anim ../jsmn ../XCB ${CMAKE_CURRENT_SOURCE_DIR}/.. ${KS_INCLUDE_DIRS} ${XCB_INCLUDE_DIRS})
-target_link_libraries(shmtrial anim jsmn xcbwindow ${KS_LIBRARIES} ${XCB_LIBRARIES} ${XCB_SHM_LIBRARIES} ${PNG_LIBRARIES} ${JPEG_LIBRARIES})
+target_link_libraries(shmtrial anim jsmn xcbwindow ${KS_LIBRARIES} ${XCB_LIBRARIES} ${XCB_SHM_LIBRARIES} ${PNG_LIBRARIES} ${JPEG_LIBRARIES} ${FT_LIBRARIES})
