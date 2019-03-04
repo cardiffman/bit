@@ -67,6 +67,22 @@ void read_png_file(const char* file_name, GraphicsEngine* engine, GraphicsBuffer
 	dims.height = height = png_get_image_height(png_ptr, info_ptr);
 	color_type = png_get_color_type(png_ptr, info_ptr);
 	bit_depth = png_get_bit_depth(png_ptr, info_ptr);
+	if (color_type == PNG_COLOR_TYPE_PALETTE)
+	{
+		png_set_palette_to_rgb(png_ptr);
+	}
+	else if (color_type == PNG_COLOR_TYPE_GRAY && bit_depth < 8)
+	{
+		png_set_expand_gray_1_2_4_to_8(png_ptr);
+	}
+	if (png_get_valid(png_ptr, info_ptr, PNG_INFO_tRNS))
+	{
+		png_set_tRNS_to_alpha(png_ptr);
+	}
+	if (bit_depth == 16)
+	{
+		png_set_strip_16(png_ptr);
+	}
 
 	number_of_passes = png_set_interlace_handling(png_ptr);
 	png_read_update_info(png_ptr, info_ptr);
@@ -79,7 +95,10 @@ void read_png_file(const char* file_name, GraphicsEngine* engine, GraphicsBuffer
 	row_pointers = (png_bytep*) malloc(sizeof(png_bytep) * height);
 	for (y = 0; y < height; y++)
 		row_pointers[y] = y*rowbytes + mem;
+	//png_set_rows(png_ptr, info_ptr, row_pointers);
 
+	//uint32_t png_transforms = PNG_TRANSFORM_IDENTITY;
+	//png_read_png(png_ptr, info_ptr, png_transforms, NULL);
 	png_read_image(png_ptr, row_pointers);
 	free(row_pointers);
 	DEST = engine->makeBuffer(dims, mem, rowbytes);
