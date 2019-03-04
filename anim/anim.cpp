@@ -153,6 +153,10 @@ void draw_container(const Container& g, Scene& scene, GraphicsBuffer* screen, Gr
 	else
 	{
 		Area asset_draw, asset_screen;
+		if (g.color & 0xFF000000) // If this color is not fully transparent.
+		{
+			engine->fill(screen, draw, g.color);
+		}
 		Asset& asset = scene.assets[g.asset_id];
 		Area asset_area = Area(0,0,asset.image->dims.width,asset.image->dims.height);
 		asset_draw = asset_area;
