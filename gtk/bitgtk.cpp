@@ -34,6 +34,12 @@ struct CairoBuffer : public GraphicsBuffer
     {
         dims = size;
         surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, size.width, size.height);
+        //cairo_t* cr = cairo_create(surface);
+        //cairo_set_source_rgba(cr, 0, 1, 0, 1);
+        //cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+        //cairo_rectangle(cr, 0, 0, size.width, size.height);
+        //cairo_fill(cr);
+        //cairo_destroy(cr);
     }
     CairoBuffer(const RectSize& size, void* data, unsigned rowbytes)
     {
@@ -133,7 +139,7 @@ struct CairoEngine : public GraphicsEngine
         else
         {
             cairo_t* cr = cairo_create(cdst->surface);
-            cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
+            //cairo_set_operator(cr, CAIRO_OPERATOR_SOURCE);
             cairo_save(cr);
             /* CAIRO_OPERATOR_SOURCE has an unbounded interpretation
             so we need a clipping region to keep from drawing outside dstArea
@@ -173,7 +179,7 @@ private:
     CairoEngine(CairoBuffer* screen)
     : screen(screen)
     {
-
+    	fill(screen, Area(0,0,1280,720), 0xFFFFF0F0);
     }
     CairoBuffer* screen;
 };
