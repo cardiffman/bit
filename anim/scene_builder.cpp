@@ -667,58 +667,84 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 		struct Char { FT_UInt glyphIndex; int pen_x;int pen_y;Area a; uint8_t* bitmap; unsigned pitch; };
 		std::vector<Char> chars;
 
-		int height = 0;
-		//cout << "Imaging string " << t.second << endl;
-		for (auto ch : t.second)
+		std::wstring tw = utf8tows(t.second.text);
+		FT_UInt previous = 0;
+		for (auto ch : tw)
 		{
-		  /* retrieve glyph index from character code */
-			Char c;
-			c.glyphIndex = FT_Get_Char_Index( face, ch );
+			/* retrieve glyph index from character code */
+			glyph_index = FT_Get_Char_Index( face, ch );
 
 			/* load glyph image into the slot (erase previous one) */
-			fterror = FT_Load_Glyph( face, c.glyphIndex, FT_LOAD_DEFAULT );
+			fterror = FT_Load_Glyph( face, glyph_index, FT_LOAD_DEFAULT );
 			if ( fterror )
 			{
 				cout << "Load glyph failed" << endl;
 				continue;  /* ignore errors */
 			}
 
+
+			if (previous)
+			{
+				FT_Vector kerning;
+				FT_Get_Kerning(face, previous, glyph_index, FT_KERNING_UNFITTED, &kerning);
+				pen_x += kerning.x >> 6;
+			}
+			previous = glyph_index;
 			/* convert to an anti-aliased bitmap */
 			fterror = FT_Render_Glyph( face->glyph, FT_RENDER_MODE_NORMAL );
 			if ( fterror )
-			{
-				cout << "Render glyph failed" << endl;
 				continue;
-			}
-			c.a.width = slot->bitmap.width;
-			c.a.height = slot->bitmap.rows;
-			//cout << "Adding bitmap of height " << c.a.height << " to image" << endl;
-			if (c.a.height > height) height = c.a.height;
-			c.bitmap = new uint8_t[c.a.width*c.a.height];
-			memcpy(c.bitmap, slot->bitmap.buffer, c.a.width*c.a.height);
-			c.pen_x = pen_x;
-			c.pen_y = pen_y;
-
-			///* now, draw to our target surface */
-			//my_draw_bitmap( &slot->bitmap,
-			//				pen_x + slot->bitmap_left,
-			//				pen_y - slot->bitmap_top );
 
 			/* increment pen position */
 			pen_x += slot->advance.x >> 6;
 			pen_y += slot->advance.y >> 6; /* not useful for now */
-			chars.push_back(c);
+			//if (slot->bitmap.rows > height) height = slot->bitmap.rows;
 		}
 		auto gbuffer = engine->makeBuffer(RectSize(pen_x,height));
 		uint8_t* buf_ptr; uint32_t buf_pitch;
 		gbuffer->lock(buf_ptr, buf_pitch);
-		for (auto c : chars)
+
+		/* locate the pen on the font's baseline, which in FT's
+		 * case is 'descender' pixels above bottom.
+		 */
+		pen_x = 0;
+		pen_y = height +(face->size->metrics.descender >>6);
+		std::wcout << L"TEXT: " << tw << endl;
+		cout << "METRICS specified size "<<font_size
+				<<" ascender "<<(face->size->metrics.ascender>>6)
+				<<" descender "<<(face->size->metrics.descender>>6)
+				<<" height "<<(face->size->metrics.height>>6)
+				<<" max_advance "<<(face->size->metrics.max_advance>>6)
+				<< endl;
+		previous = 0;
+		for (auto ch : tw)
 		{
-			c.a;
-			c.bitmap;
-			c.pen_x;
-			c.pen_y;
-			draw_glyph(buf_ptr, buf_pitch, c.bitmap, c.a, c.pen_x, c.pen_y);
+			/* retrieve glyph index from character code */
+			glyph_index = FT_Get_Char_Index( face, ch );
+
+			/* load glyph image into the slot (erase previous one) */
+			fterror = FT_Load_Glyph( face, glyph_index, FT_LOAD_DEFAULT );
+			if ( fterror )
+				continue;  /* ignore errors */
+
+			/* convert to an anti-aliased bitmap */
+			fterror = FT_Render_Glyph( face->glyph, FT_RENDER_MODE_NORMAL );
+			if ( fterror )
+				continue;
+
+			if (previous)
+			{
+				FT_Vector kerning;
+				FT_Get_Kerning(face, previous, glyph_index, FT_KERNING_UNFITTED, &kerning);
+				pen_x += kerning.x >> 6;
+			}
+			previous = glyph_index;
+			/* now, draw to our target surface */
+			draw_glyph(buf_ptr, buf_pitch, width, height, &slot->bitmap, pen_x+slot->bitmap_left, pen_y-slot->bitmap_top);
+
+			/* increment pen position */
+			pen_x += slot->advance.x >> 6;
+			pen_y += slot->advance.y >> 6; /* not useful for now */
 		}
 		gbuffer->unlock();
 		urls_by_id[t.first] = t.second;
