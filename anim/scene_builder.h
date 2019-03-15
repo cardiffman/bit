@@ -19,12 +19,19 @@ struct GraphicsEngine;
 
 struct SceneBuilder
 {
+	struct Text {
+		std::string text;
+		std::string font;
+		int size;
+		Text():size(0){}
+	};
 	std::vector<Container> nc;
 	std::vector<Asset> na;
 	std::map<std::string,Asset> named_a;
 	std::map<std::string,int> named_container_ids;
 	std::map<unsigned,std::string> urls_by_id;
-	std::map<unsigned,std::string> text_by_id;
+	std::map<unsigned,Text> text_by_id;
+	std::map<unsigned,std::string> font_by_id;
 	struct Parameter {
 		std::string name;
 		std::vector<int> values;
@@ -47,6 +54,7 @@ private:
 	void parse_color(unsigned& color, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void parse_area(Area& area, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void parse_text(Container& c, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
+	void parse_font(Container& c, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void scene_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void container_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens, int parent);
 	void asset_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);

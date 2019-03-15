@@ -22,14 +22,98 @@ SceneBuilder::SceneBuilder() {
 	container_id = 0;
 	asset_id = 0;
 }
+std::wstring utf8tows(const std::string& input)
+{
+	std::wstring ws;
+	auto pi = input.begin();
+	while (pi != input.end())
+	{
+		unsigned b[4]; b[0]=b[1]=b[2]=b[3]=0;
+		if (*pi < 0xc0)
+			b[0] = *pi++;
+		else if (*pi < 0xe0)
+		{
+			b[0] = *pi++ & 0x1F;
+			b[1] = *pi++ & 0x3F;
+		}
+		else if (*pi < 0xF0)
+		{
+			b[0] = *pi++ & 0x1F;
+			b[1] = *pi++ & 0x3F;
+			b[2] = *pi++ & 0x3F;
+		}
+		else if (*pi < 0xF0)
+		{
+			b[0] = *pi++ & 0x1F;
+			b[1] = *pi++ & 0x3F;
+			b[2] = *pi++ & 0x3F;
+			b[3] = *pi++ & 0x3F;
+		}
+		ws.push_back((b[3]<<24)|(b[2]<<16)|(b[1]<<8)|b[0]);
+	}
+	return ws;
+}
 void SceneBuilder::parse_text(Container& c, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
+	if (ptokens->type == JSMN_STRING)
+	{
+		auto t = text.substr(ptokens->start, ptokens->end-ptokens->start);
+		++ptokens;
+		Text tt; tt.text = t;
+		text_by_id[++asset_id] = tt;
+		cout << "text: " << text_by_id[asset_id].text << " " << asset_id << " " << tt.text << endl;
+		Asset a;
+		a.id = asset_id;
+		na.push_back(a);
+		c.asset_id = asset_id;
+	}
+	else if (ptokens->type == JSMN_OBJECT)
+	{
+		int members = ptokens->size;
+		++ptokens;
+		Text tt;
+		for (int i=0; i<members; ++i)
+		{
+			auto member_name = text.substr(ptokens->start, ptokens->end-ptokens->start);
+			++ptokens;
+			if (member_name == "string")
+			{
+				auto t = text.substr(ptokens->start, ptokens->end-ptokens->start);
+				++ptokens;
+				tt.text = t;
+			}
+			else if (member_name == "font")
+			{
+				auto f = text.substr(ptokens->start, ptokens->end-ptokens->start);
+				++ptokens;
+				tt.font = f;
+			}
+			else
+			{
+				cout << member_name << " value: " <<text.substr(ptokens->start, ptokens->end-ptokens->start) << endl;
+				auto val = std::stod(text.substr(ptokens->start, ptokens->end-ptokens->start));
+				tt.size = val;
+				++ptokens;
+			}
+		}
+		text_by_id[++asset_id] = tt;
+		cout << "text: " << text_by_id[asset_id].text << " " << asset_id << " " << tt.text << endl;
+		Asset a;
+		a.id = asset_id;
+		na.push_back(a);
+		c.asset_id = asset_id;
+	}
+	else
+	{
+		cout << "parse_text " << ptokens->type << " is not handled here" << endl;
+	}
+}
+void SceneBuilder::parse_font(Container& c, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
+{
 	auto t = text.substr(ptokens->start, ptokens->end-ptokens->start);
-	text_by_id[++asset_id] = t;
-	Asset a;
-	a.id = asset_id;
-	na.push_back(a);
-	c.asset_id = asset_id;
+	++ptokens;
+	font_by_id[++asset_id] = t;
+	cout << "font: " << font_by_id[asset_id] << " " << asset_id << " " << t << endl;
 }
 void SceneBuilder::parse_asset_label(unsigned& id, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
@@ -156,11 +240,11 @@ void SceneBuilder::container_read(const std::string& text, std::vector<jsmntok_t
 						named_container_ids[label] = c.id;
 					}
 					++ptokens;
-					continue;
 				}
-				if (member_name == "area")
+				else if (member_name == "area")
 				{
 					parse_area(c.area, text, ptokens);
+					cout <<"Area for container " << c.id << " element " << i << endl;
 				}
 				else if (member_name == "fill")
 				{
@@ -169,17 +253,28 @@ void SceneBuilder::container_read(const std::string& text, std::vector<jsmntok_t
 				else if (member_name == "asset")
 				{
 					parse_asset_label(c.asset_id, text, ptokens);
+					cout <<"Asset for container " << c.id << " element " << i << endl;
 				}
 				else if (member_name == "text")
 				{
+					cout << "text member so calling parse_text" << endl;
 					parse_text(c, text, ptokens);
+					cout <<"Text for container " << c.id << " element " << i << endl;
 				}
+#if 0
+				else if (member_name == "font")
+				{
+					//parse_font(c, text, ptokens);
+					//cout <<"Font for container " << c.id << " element " << i << endl;
+				}
+#endif
 				else if (member_name == "containers")
 				{
 					if (ptokens->type == JSMN_ARRAY)
 					{
 						int elements = ptokens->size;
 						++ptokens;
+						cout << "Container " << c.id << " Appears to have " << elements << " children" << endl;
 						for (int i=0; i<elements; ++i)
 						{
 							container_read(text, ptokens, c.id);
@@ -190,9 +285,20 @@ void SceneBuilder::container_read(const std::string& text, std::vector<jsmntok_t
 						throw "containers member must be array";
 					}
 				}
+				else
+				{
+					cout << "member " << member_name << endl;
+					++ptokens;
+				}
+			}
+			else
+			{
+				cout << "Member " << i << endl;
+				++ptokens;
 			}
 		}
 		nc.push_back(c);
+		cout << "Containers: " << nc.size() << endl;
 	}
 }
 void SceneBuilder::asset_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
@@ -460,10 +566,12 @@ void SceneBuilder::scene_read(const std::string& text, std::vector<jsmntok_t>::i
 					{
 						int elements = ptokens->size;
 						++ptokens;
+						cout << "Top Level containers: " << elements << endl;
 						for (int i=0; i<elements; ++i)
 						{
 							container_read(text, ptokens, 0);
 						}
+						cout << "Containers parsed "<< nc.size() << endl;
 					}
 					else
 					{
@@ -582,6 +690,7 @@ void SceneBuilder::parse_containers_from_string(const char* text, GraphicsEngine
 	}
 	print_scene();
 }
+#if 0
 void draw_glyph(uint8_t* buf_ptr, uint32_t buf_pitch, uint8_t* bitmap, const Area& area, int pen_x, int pen_y)
 {
 	uint8_t* buf = buf_ptr+4*pen_x;
@@ -590,6 +699,30 @@ void draw_glyph(uint8_t* buf_ptr, uint32_t buf_pitch, uint8_t* bitmap, const Are
 		for (int j=0; j<area.width; ++j)
 		{
 			((uint32_t*)buf)[j] = bitmap[i*area.width+j]*0x01010101;
+		}
+		buf += buf_pitch;
+	}
+}
+#endif
+enum { CLIP_IN, CLIP_PARTIAL, CLIP_OUT };
+int number_line(int low_limit, int size_limit, int low, int size, int* draw_low, int* draw_size);
+int clip_area_to_area(const Area& limit_area, const Area& area, Area& draw);
+
+void draw_glyph(uint8_t* buf_ptr, uint32_t buf_pitch, int width, int height, FT_Bitmap* bitmap, int pen_x, int pen_y)
+{
+	Area draw;
+	int res = clip_area_to_area(Area(0,0,width,height),Area(pen_x,pen_y,bitmap->width,bitmap->rows),draw);
+	if (res == CLIP_OUT)
+	{
+		cout << "Glyph clipped out" << endl;
+		return;
+	}
+	uint8_t* buf = buf_ptr+draw.y*buf_pitch+4*draw.x;
+	for (int i=draw.y-pen_y; i<draw.y+draw.height-pen_y; i++)
+	{
+		for (int j=draw.x-pen_x; j<draw.x+draw.width-pen_x; ++j)
+		{
+			((uint32_t*)buf)[j] = bitmap->buffer[i*bitmap->pitch+j]*0x01010101;
 		}
 		buf += buf_pitch;
 	}
@@ -626,6 +759,7 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 			read_png_file(u.second.c_str(), engine, na[u.first].image);
 		}
 	}
+	cout << "Text assets:" << text_by_id.size() << endl;
 	FT_Library library;
 	int fterror = FT_Init_FreeType(&library);
 	for (auto t:text_by_id)
@@ -636,7 +770,15 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 			puts("freetype library");
 			exit(1);
 		}
-		fterror = FT_New_Face(library, "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 0, &face);
+		if (t.second.font.size())
+		{
+			fterror = FT_New_Face(library, t.second.font.c_str(), 0, &face);
+		}
+		else
+		{
+			fterror = FT_New_Face(library, "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 0, &face);
+			//fterror = FT_New_Face(library, "/usr/share/fonts-droid-fallback/truetype/DroidSansFallback.ttf", 0, &face);
+		}
 		if (fterror == FT_Err_Unknown_File_Format)
 		{
 			puts("Font not valid");
@@ -652,7 +794,8 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 			printf("FreeType face is null but no error?\n");
 			exit(1);
 		}
-		fterror = FT_Set_Pixel_Sizes(face, 0, 32); //16 pixels high
+		int font_size = t.second.size ? t.second.size : 16;
+		fterror = FT_Set_Pixel_Sizes(face, 0, font_size); //16 pixels high
 		if (fterror)
 		{
 			cout << "Set pixel sizes failed. " << fterror << endl;
@@ -662,10 +805,9 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 		int           pen_x, pen_y, n;
 		FT_UInt  glyph_index;
 
+		int height = face->size->metrics.height >> 6;
 		pen_x = 0;
-		pen_y = 32;
-		struct Char { FT_UInt glyphIndex; int pen_x;int pen_y;Area a; uint8_t* bitmap; unsigned pitch; };
-		std::vector<Char> chars;
+		pen_y = height +(face->size->metrics.descender >>6);
 
 		std::wstring tw = utf8tows(t.second.text);
 		FT_UInt previous = 0;
@@ -677,10 +819,7 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 			/* load glyph image into the slot (erase previous one) */
 			fterror = FT_Load_Glyph( face, glyph_index, FT_LOAD_DEFAULT );
 			if ( fterror )
-			{
-				cout << "Load glyph failed" << endl;
 				continue;  /* ignore errors */
-			}
 
 
 			if (previous)
@@ -700,7 +839,11 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 			pen_y += slot->advance.y >> 6; /* not useful for now */
 			//if (slot->bitmap.rows > height) height = slot->bitmap.rows;
 		}
+
+		height = face->size->metrics.height >> 6;
+		int width = pen_x;
 		auto gbuffer = engine->makeBuffer(RectSize(pen_x,height));
+		engine->fill(gbuffer, Area(0,0,width,height), 0);
 		uint8_t* buf_ptr; uint32_t buf_pitch;
 		gbuffer->lock(buf_ptr, buf_pitch);
 
@@ -747,38 +890,8 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 			pen_y += slot->advance.y >> 6; /* not useful for now */
 		}
 		gbuffer->unlock();
-		urls_by_id[t.first] = t.second;
-		auto& x = na[t.first];
-		x.image;
+		urls_by_id[t.first] = t.second.text;
 		na[t.first].image = gbuffer;
-#if 0
-		DEST = engine->makeBuffer(dims, mem, rowbytes);
-		xcb_gcontext_t gcontext = xcb_generate_id(xcb_connection);
-		uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND; // | XCB_GC_FONT;
-		uint32_t value_list[3];
-		value_list[0] = xcb_screen->black_pixel;
-		value_list[1] = xcb_screen->white_pixel;
-		//value_list[2] = font;
-		xcb_void_cookie_t cookie_gc = xcb_create_gc_checked(xcb_connection,
-				gcontext, window, mask, value_list);
-		xcb_generic_error_t* error = xcb_request_check(xcb_connection, cookie_gc);
-		xcb_void_cookie_t chk = xcb_put_image_checked(xcb_connection,
-				XCB_IMAGE_FORMAT_Z_PIXMAP, window, gcontext, (uint16_t)1280/*width*/, (uint16_t)720/*height*/, 0,
-				0, 0, XCBWindow::xcb_screen->root_depth, bytes, Mem);
-		xcb_flush(xcb_connection);
-		//cerr << "Image put, checking\n";
-		/*xcb_generic_error_t**/ error = xcb_request_check(xcb_connection, chk);
-		if (error)
-		{
-			cerr << "ERROR: can't put_image :"<<
-					unsigned(error->error_code) << endl;
-			xcb_disconnect(xcb_connection);
-			exit(-1);
-		}
-		xcb_free_gc(xcb_connection, gcontext);
-#endif
 	}
 	print_scene();
 }
-
-

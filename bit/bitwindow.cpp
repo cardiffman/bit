@@ -15,6 +15,7 @@ using namespace std;
 
 bitwindow::bitwindow(const Rect& rect)
 : XCBWindow(createXcbWindow("bitwindow", rect))
+, engine(0)
 {
 }
 bitwindow* bitwindow::create(GraphicsEngine* engine_)

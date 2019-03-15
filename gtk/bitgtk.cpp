@@ -179,7 +179,7 @@ private:
     CairoEngine(CairoBuffer* screen)
     : screen(screen)
     {
-    	fill(screen, Area(0,0,1280,720), 0xFFFFF0F0);
+    	fill(screen, Area(0,0,1280,720), 0xFFEECCDD);//0x3FFF1010);//0x00000000);//0xFFFFF0F0);
     }
     CairoBuffer* screen;
 };

@@ -241,7 +241,7 @@ void draw_container(const Container& g, Scene& scene, GraphicsBuffer* screen, Gr
 						<< den_asset_width << ',' << den_asset_height << ')' << endl;
 				return;
 			}
-			engine->stretchSrcCopy(screen, draw, asset.image, asset_area);
+			engine->stretchSrcOver(screen, draw, asset.image, asset_area);
 		}
 	}
 
