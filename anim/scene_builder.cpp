@@ -722,7 +722,11 @@ void draw_glyph(uint8_t* buf_ptr, uint32_t buf_pitch, int width, int height, FT_
 	{
 		for (int j=draw.x-pen_x; j<draw.x+draw.width-pen_x; ++j)
 		{
-			((uint32_t*)buf)[j] = bitmap->buffer[i*bitmap->pitch+j]*0x01010101;
+			//((uint32_t*)buf)[j] = bitmap->buffer[i*bitmap->pitch+j]*0x01010101;
+			//((uint32_t*)buf)[j] = bitmap->buffer[i*bitmap->pitch+j]<<24;//*0x01010101;
+			((uint32_t*)buf)[j] = (bitmap->buffer[i*bitmap->pitch+j]<<24)|0x00FFFFFF;
+			buf[4*j+3] = bitmap->buffer[i*bitmap->pitch+j];
+			buf[4*j+2] = buf[4*j+1] = buf[4*j+0] = 0xFF;
 		}
 		buf += buf_pitch;
 	}
