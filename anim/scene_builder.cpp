@@ -724,9 +724,21 @@ void draw_glyph(uint8_t* buf_ptr, uint32_t buf_pitch, int width, int height, FT_
 		{
 			//((uint32_t*)buf)[j] = bitmap->buffer[i*bitmap->pitch+j]*0x01010101;
 			//((uint32_t*)buf)[j] = bitmap->buffer[i*bitmap->pitch+j]<<24;//*0x01010101;
-			((uint32_t*)buf)[j] = (bitmap->buffer[i*bitmap->pitch+j]<<24)|0x00FFFFFF;
+			//((uint32_t*)buf)[j] = (bitmap->buffer[i*bitmap->pitch+j]<<24)|0x00FFFFFF;
 			buf[4*j+3] = bitmap->buffer[i*bitmap->pitch+j];
+#if 0
+			// GTK+cairo (cairo always) wants premultiplied alpha
+			// Bit works with premultiplied or NPM.
+			buf[4*j+2] = buf[4*j+1] = buf[4*j+0] = buf[4*j+3];
+#elif 1
+			// GTK+cairo (cairo always) wants premultiplied alpha
+			// Bit works with premultiplied or NPM.
+			// Using integers which is not sensitive to endianness.
+			((uint32_t*)buf)[j] = bitmap->buffer[i*bitmap->pitch+j]*0x01010101;
+#else
+			// NPM, fails with cairo
 			buf[4*j+2] = buf[4*j+1] = buf[4*j+0] = 0xFF;
+#endif
 		}
 		buf += buf_pitch;
 	}
