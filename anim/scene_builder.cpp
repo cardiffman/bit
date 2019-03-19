@@ -29,27 +29,29 @@ std::wstring utf8tows(const std::string& input)
 	while (pi != input.end())
 	{
 		unsigned b[4]; b[0]=b[1]=b[2]=b[3]=0;
-		if (*pi < 0xc0)
-			b[0] = *pi++;
-		else if (*pi < 0xe0)
+		if ((uint8_t)*pi < 0xD0)
+			ws.push_back(*pi++);
+		else if (((uint8_t)*pi&0xe0) == 0xc0)
 		{
-			b[0] = *pi++ & 0x1F;
-			b[1] = *pi++ & 0x3F;
+			b[1] = *pi++ & 0x1F;
+			b[0] = *pi++ & 0x3F;
+			ws.push_back((b[1]<<6)|b[0]);
 		}
-		else if (*pi < 0xF0)
+		else if (((uint8_t)*pi&0xF0) == 0xE0)
 		{
-			b[0] = *pi++ & 0x1F;
+			b[2] = *pi++ & 0x0F;
 			b[1] = *pi++ & 0x3F;
+			b[0] = *pi++ & 0x3F;
+			ws.push_back((b[2]<<12)|(b[1]<<6)|b[0]);
+		}
+		else //if ((uint8_t)*pi < 0xF0)
+		{
+			b[3] = *pi++ & 0x07;
 			b[2] = *pi++ & 0x3F;
-		}
-		else if (*pi < 0xF0)
-		{
-			b[0] = *pi++ & 0x1F;
 			b[1] = *pi++ & 0x3F;
-			b[2] = *pi++ & 0x3F;
-			b[3] = *pi++ & 0x3F;
+			b[0] = *pi++ & 0x3F;
+			ws.push_back((b[3]<<18)|(b[2]<<12)|(b[1]<<6)|b[0]);
 		}
-		ws.push_back((b[3]<<24)|(b[2]<<16)|(b[1]<<8)|b[0]);
 	}
 	return ws;
 }
