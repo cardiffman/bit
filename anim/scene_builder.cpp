@@ -8,6 +8,8 @@
 #include "scene.h"
 #include "engine.h"
 #include <iostream>
+#include <iomanip>
+#include <list>
 #include "read_JPEG_file.h"
 #include "read_png_file.h"
 #include "parse_json_utils.h"
@@ -745,88 +747,84 @@ void draw_glyph(uint8_t* buf_ptr, uint32_t buf_pitch, int width, int height, FT_
 		buf += buf_pitch;
 	}
 }
-void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
-{
-	std::vector<jsmntok_t> tokens;
-	std::string jstext;
-	tokenize_json(file, tokens, jstext);
-	cout << "js: chars provided " << jstext.size() << endl;
-	//dump_jstokens(tokens, jstext);
-	auto ptokens = tokens.begin();
-	cout << "Scene" << endl;
-	scene_read(&jstext[0], ptokens);
-	cout << "Thats it" << endl;
-	nc.insert(nc.begin(), Container());
-	std::sort(nc.begin(), nc.end(), by_id);
-	for (auto& g : nc) {
-		g.children = 0;
-	}
-	for (auto& g : nc) {
-		if (g.parent_id != ID_NULL)
-			nc[g.parent_id].children++;
-	}
-	na.insert(na.begin(), Asset());
-	//print_scene();
-	for (auto u : urls_by_id)
-	{
-		if (u.second.find(".jpg")!=-1)
-		{
-			read_JPEG_file(u.second.c_str(), engine, na[u.first].image);
-		} else if (u.second.find(".png")!=-1)
-		{
-			read_png_file(u.second.c_str(), engine, na[u.first].image);
-		}
-	}
-	cout << "Text assets:" << text_by_id.size() << endl;
-	FT_Library library;
-	int fterror = FT_Init_FreeType(&library);
-	for (auto t:text_by_id)
-	{
-		FT_Face face;
-		if (fterror)
-		{
-			puts("freetype library");
-			exit(1);
-		}
-		if (t.second.font.size())
-		{
-			fterror = FT_New_Face(library, t.second.font.c_str(), 0, &face);
-		}
-		else
-		{
-			fterror = FT_New_Face(library, "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 0, &face);
-			//fterror = FT_New_Face(library, "/usr/share/fonts-droid-fallback/truetype/DroidSansFallback.ttf", 0, &face);
-		}
-		if (fterror == FT_Err_Unknown_File_Format)
-		{
-			puts("Font not valid");
-			exit(1);
-		}
-		else if (fterror)
-		{
-			printf("FreeType error %d\n", fterror);
-			exit(1);
-		}
-		else if (face == NULL)
-		{
-			printf("FreeType face is null but no error?\n");
-			exit(1);
-		}
-		int font_size = t.second.size ? t.second.size : 16;
-		fterror = FT_Set_Pixel_Sizes(face, 0, font_size); //16 pixels high
-		if (fterror)
-		{
-			cout << "Set pixel sizes failed. " << fterror << endl;
-			continue;  /* ignore errors */
-		}
-		FT_GlyphSlot  slot = face->glyph;  /* a small shortcut */
-		int           pen_x, pen_y, n;
-		FT_UInt  glyph_index;
 
+struct FontUsage
+{
+	FT_Library* library;
+	std::string font;
+	FT_Face face;
+	int size;
+};
+std::list<FontUsage> fonts;
+FT_Library library;
+FontUsage& make_font(const std::string& fontfile, int size)
+{
+	for (auto& font: fonts)
+	{
+		if (font.font == fontfile && font.size == size)
+			return font;
+	}
+	FontUsage font;
+	font.font = fontfile;
+	font.library = &library;
+	int fterror;
+	if (fontfile.size())
+	{
+		fterror = FT_New_Face(library, fontfile.c_str(), 0, &font.face);
+	}
+	else
+	{
+		fterror = FT_New_Face(library,
+				"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 0,
+				&font.face);
+		//fterror = FT_New_Face(library, "/usr/share/fonts-droid-fallback/truetype/DroidSansFallback.ttf", 0, &face);
+	}
+	if (fterror == FT_Err_Unknown_File_Format)
+	{
+		puts("Font not valid");
+		exit(1);
+	}
+	else if (fterror)
+	{
+		printf("FreeType error %d\n", fterror);
+		exit(1);
+	}
+	else if (font.face == NULL)
+	{
+		printf("FreeType face is null but no error?\n");
+		exit(1);
+	}
+
+	font.size = size ? size : 16;
+	fterror = FT_Set_Pixel_Sizes(font.face, 0, font.size); //16 pixels high
+	if (fterror)
+	{
+		cout << "Set pixel sizes failed. " << fterror << endl;
+		//continue; /* ignore errors */
+	}
+	fonts.push_back(font);
+	return fonts.back();
+}
+void SceneBuilder::prepare_text(GraphicsEngine* engine)
+{
+	cout << "Text assets:" << text_by_id.size() << endl;
+	int fterror = FT_Init_FreeType(&library);
+	if (fterror)
+	{
+		puts("freetype library");
+		exit(1);
+	}
+	for (auto t : text_by_id)
+	{
+		//FT_Face face;
+		FontUsage font = make_font(t.second.font, t.second.size);
+		FT_Face& face = font.face;
+		FT_GlyphSlot slot = face->glyph; /* a small shortcut */
+		int pen_x, pen_y, n;
+		FT_UInt glyph_index;
 		int height = face->size->metrics.height >> 6;
 		pen_x = 0;
 		pen_y = height +(face->size->metrics.descender >>6);
-
 		std::wstring tw = utf8tows(t.second.text);
 		FT_UInt previous = 0;
 		for (auto ch : tw)
@@ -871,7 +869,7 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 		pen_x = 0;
 		pen_y = height +(face->size->metrics.descender >>6);
 		std::wcout << L"TEXT: " << tw << endl;
-		cout << "METRICS specified size "<<font_size
+		cout << "METRICS specified size "<<font.size
 				<<" ascender "<<(face->size->metrics.ascender>>6)
 				<<" descender "<<(face->size->metrics.descender>>6)
 				<<" height "<<(face->size->metrics.height>>6)
@@ -911,5 +909,40 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 		urls_by_id[t.first] = t.second.text;
 		na[t.first].image = gbuffer;
 	}
+}
+
+void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
+{
+	std::vector<jsmntok_t> tokens;
+	std::string jstext;
+	tokenize_json(file, tokens, jstext);
+	cout << "js: chars provided " << jstext.size() << endl;
+	//dump_jstokens(tokens, jstext);
+	auto ptokens = tokens.begin();
+	cout << "Scene" << endl;
+	scene_read(&jstext[0], ptokens);
+	cout << "Thats it" << endl;
+	nc.insert(nc.begin(), Container());
+	std::sort(nc.begin(), nc.end(), by_id);
+	for (auto& g : nc) {
+		g.children = 0;
+	}
+	for (auto& g : nc) {
+		if (g.parent_id != ID_NULL)
+			nc[g.parent_id].children++;
+	}
+	na.insert(na.begin(), Asset());
+	//print_scene();
+	for (auto u : urls_by_id)
+	{
+		if (u.second.find(".jpg")!=-1)
+		{
+			read_JPEG_file(u.second.c_str(), engine, na[u.first].image);
+		} else if (u.second.find(".png")!=-1)
+		{
+			read_png_file(u.second.c_str(), engine, na[u.first].image);
+		}
+	}
+	prepare_text(engine);
 	print_scene();
 }

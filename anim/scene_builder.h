@@ -63,6 +63,7 @@ private:
 	void user_input_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void animation_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	Parameter parse_parameter(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
+	void prepare_text(GraphicsEngine* engine);
 };
 
 #endif /* BIT_SCENE_BUILDER_H_ */
