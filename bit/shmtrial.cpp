@@ -5,329 +5,138 @@
  *      Author: menright
  */
 
-#include "XCBWindow.h"
+#include "shmwindow.h"
 #include "scene_builder.h"
 #include "engine.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <unistd.h>
-
-#include <sys/ipc.h>
-#include <sys/shm.h>
-
-#include <xcb/xcb.h>
-#include <xcb/shm.h>
-#include <xcb/xcb_image.h>
 
 #include <iostream>
 using std::cerr;
 using std::endl;
+using std::cout;
 using std::clog;
 
-class shmwindow : public XCBWindow
-{
-public:
-	static shmwindow* create();
-	void onExpose(int x, int y, int width, int height, int count);
-	void repaint();
-	xcb_window_t getWindow() { return window; }
-	void copy();
-    SceneBuilder builder;
-private:
-	shmwindow(const Rect& rect);
-	virtual void onKeyRelease(const KeyDescriptor& key);
-	virtual void onKeyPress(const KeyDescriptor& key);
-	xcb_pixmap_t pix;
+Scene scene = {
+		{
+		{ 0, 0},
+		{ 1, 0},
+		{ 2, 0},
+		{ 3, 0},
+		{ 4, 0},
+		{ 5, 0},
+		{ 6, 0},
+		{ 7, 0},
+		{ 8, 0},
+		{ 9, 0},
+		{10, 0},
+		{11, 0},
+		{12, 0},
+		{13, 0}
+		},
+		{
+				{ {0,0,0,0}, 0, 0, 0 },
+				{ {  0,  0, 1280, 720}, 1, ID_NULL, ID_NULL, 0xff808080 },
+				{ {  0,  0,  100, 100}, 2, ID_NULL, ID_NULL, 0xffff0000},
+				{ {100,100, 1080, 520}, 3, ID_NULL, ID_NULL, 0xffff0000  },
+				{ {  0,  0,  127, 190}, 4, 3,       1},
+				{ {127,  0,  127, 190}, 5, 3,       2, },
+				{ {254,  0,  127, 190}, 6, 3,       3, },
+				{ {381,  0,  127, 190}, 7, 3,      4, },
+				{ {508,  0, 127, 190}, 8, 3,      5, },
+				{ {635,  0, 127, 190}, 9, 3,      6, },
+				{ {762,  0, 127, 190},10, 3,      7, },
+				{ {889,  0, 127, 190},11, 3,      8, },
+				{ {1016, 0, 127, 190},12, 3,      9, },
+				{ {1143, 0, 127, 190},13, 3,     10, },
+				{ {1270, 0, 127, 190},14, 3,     1, },
+		}
 };
 
-class SHMEngine : public BlittingEngine
-{
-public:
-    SHMEngine()
-    {
-        get_shared_memory();
-    }
-    bool supportsBuffer(GraphicsBuffer* buffer) { return true; }
-    GraphicsBuffer* getScreenBuffer()
-    {
-        return screenBuffer;
-    }
-    GraphicsBuffer* makeBuffer(const RectSize& dims);
-    GraphicsBuffer* makeBuffer(const RectSize& dims, void* data, uint32_t rowBytes);
-    xcb_shm_segment_info_t          info;
-private:
-    bool get_shared_memory();
-    BasicBuffer* makeBufferInternal(const RectSize& dims);
-    GraphicsBuffer* screenBuffer;
-};
+const char* base_scene =
+		"{ \"containers\": ["
+			  "{ \"area\": {\"x\":0,\"y\":0,\"width\":1280,\"height\":720 }"
+			  " ,\"fill\": [80,80,80]"
+			  "} "
+			  ", {\"area\": {\"x\":0,\"y\":0,\"width\":100, \"height\":100 }"
+			  " ,\"fill\": [255,0,0]"
+			  "} "
+				", {\"area\": {\"x\":100,\"y\":100,\"width\":1080, \"height\":520 }"
+				" ,\"fill\": [255,0,0]"
+				" ,\"containers\": ["
+				"  {\"area\": {\"x\":  0,  \"y\":0, \"width\": 127, \"height\":190},\"asset\": \"picture1\"},"
+				"  {\"area\": {\"x\":127,  \"y\":0, \"width\": 127, \"height\":190},\"asset\": \"picture2\",},"
+				"  {\"area\": {\"x\":254,  \"y\":0, \"width\": 127, \"height\":190},\"asset\": \"picture3\", },"
+				"  {\"area\": {\"x\":381,  \"y\":0, \"width\": 127, \"height\":190},\"asset\": \"picture4\", },"
+				"  {\"area\": {\"x\":508,  \"y\":0, \"width\":127, \"height\":190},\"asset\": \"picture5\", },"
+				"  {\"area\": {\"x\":635,  \"y\":0, \"width\":127, \"height\":190},\"asset\": \"picture6\", },"
+				"  {\"area\": {\"x\":762,  \"y\":0, \"width\":127, \"height\":190},\"asset\": \"picture7\", },"
+				"  {\"area\": {\"x\":889,  \"y\":0, \"width\":127, \"height\":190},\"asset\": \"picture8\", },"
+				"  {\"area\": {\"x\":1016, \"y\":0, \"width\":127, \"height\":190},\"asset\":\"picture9\", },"
+				"  {\"area\": {\"x\":1143, \"y\":0, \"width\":127, \"height\":190},\"asset\":\"picture10\", },"
+				"  {\"area\": {\"x\":1270, \"y\":0, \"width\":127, \"height\":190},\"asset\":\"picture1\", }"
+					"]"
+			  	"} "
+		   "]"
+		 ", \"assets\": ["
+			  "{\"label\": \"picture1\", \"url\": \"/home/micha/bit/res/Lesson5/Vice2018.jpg\"}"
+			  ",{\"label\": \"picture2\", \"url\": \"/home/micha/bit/res/Lesson5/BB_Online_Dom_Payoff_1-Sheet_H-Steinfeld_BB_Bridge_Autobot.jpg\"}"
+			  ",{\"label\": \"picture3\", \"url\": \"/home/micha/bit/res/Lesson5/GRC_Tsr1Sheet_GrinchAndMax_.jpg\"}"
+			  ",{\"label\": \"picture4\", \"url\": \"/home/micha/bit/res/Lesson5/MULE_VERT_MAIN_DOM_2764x4096_master.jpg\"}"
+			  ",{\"label\": \"picture5\", \"url\": \"/home/micha/bit/res/Lesson5/TheFavourite2018.jpg\"}"
+			  ",{\"label\": \"picture6\", \"url\": \"/home/micha/bit/res/Lesson5/SecondAct_27x40_1Sheet_RGB.jpg\"}"
+			  ",{\"label\": \"picture7\", \"url\": \"/home/micha/bit/res/Lesson5/AQAMN_VERT_MAIN_DUO_DOM_2764x4096_master.jpg\"}"
+			  ",{\"label\": \"picture8\", \"url\": \"/home/micha/bit/res/Lesson5/TSNGO_TicketingBanner_250x375_r2.jpg\"}"
+			  ",{\"label\": \"picture9\", \"url\": \"/home/micha/bit/res/Lesson5/HolmesAndWatson2018.jpg\"}"
+			  ",{\"label\": \"picture10\", \"url\": \"/home/micha/bit/res/Lesson5/SpiderManIntoTheSpiderVerse2018.jpg\"}"
+			  ",{\"label\": \"picture11\", \"url\": \"/home/micha/bit/res/Lesson5/WTM_HeroPoster.jpg\"}"
+		      ",{\"label\": \"picture12\", \"url\": \"/home/micha/bit/res/Lesson5/MQOS_OneSheet.jpg\"}"
+		      ",{\"label\": \"picture13\", \"url\": \"/home/micha/bit/res/Lesson5/MPR-Payoff_1-Sheet_v8a_Sm.jpg\"}"
+		   "]"
+		"}";
 
-bool SHMEngine::get_shared_memory()
-{
-    xcb_shm_query_version_reply_t*  reply;
 
-    reply = xcb_shm_query_version_reply(
-    		XCBWindow::xcb_connection,
-        xcb_shm_query_version(XCBWindow::xcb_connection),
-        NULL
-    );
-
-    if(!reply || !reply->shared_pixmaps){
-        printf("Shm error...\n");
-        exit(0);
-    }
-//#define WID 512
-//#define HEI 512
-
-    info.shmid   = shmget(IPC_PRIVATE, 1280*720*4, IPC_CREAT | 0777);
-    info.shmaddr = (uint8_t*)shmat(info.shmid, 0, 0);
-
-    info.shmseg = xcb_generate_id(XCBWindow::xcb_connection);
-    xcb_shm_attach(XCBWindow::xcb_connection, info.shmseg, info.shmid, 0);
-    shmctl(info.shmid, IPC_RMID, 0);
-
-    uint32_t* data = (uint32_t*)info.shmaddr;
-    screenBuffer = makeBuffer(RectSize(1280,720), info.shmaddr, 1280*4);
-    return true;
-}
-
-GraphicsBuffer* SHMEngine::makeBuffer(const RectSize& dims)
-{
-	return makeBufferInternal(dims);
-}
-GraphicsBuffer* SHMEngine::makeBuffer(const RectSize& dims, void* data, uint32_t rowBytes)
-{
-	auto r =  new BasicBuffer();
-	r->dims = dims;
-	r->rowbytes = rowBytes;
-	r->mem =  static_cast<uint8_t*>(data);
-	return r;
-}
-BasicBuffer* SHMEngine::makeBufferInternal(const RectSize& dims)
-{
-	auto r =  new BasicBuffer();
-	r->dims = dims;
-	r->rowbytes = dims.width*4;
-	r->mem =  new uint8_t[dims.width*4*dims.height];
-	return r;
-}
-
-SHMEngine* engine;
-
-shmwindow::shmwindow(const Rect& rect)
-: XCBWindow(createXcbWindow("shmwindow", rect))
-, pix(0)
-{
-}
-shmwindow* shmwindow::create()
-{
-	shmwindow* w = new shmwindow(Rect((1920-1280)/2,(1080-720)/2,1280,720));
-
-    engine = new SHMEngine();
-    w->pix = xcb_generate_id(XCBWindow::xcb_connection);
-    auto cookie = xcb_shm_create_pixmap(
-    	XCBWindow::xcb_connection,
-        w->pix,
-        w->getWindow(),
-        1280, 720,
-        XCBWindow::xcb_screen->root_depth,
-        engine->info.shmseg,
-        0
-    );
-    clog << "xcb_shm_create_pixmap cookie " << cookie.sequence << endl;
-	return w;
-}
-void shmwindow::repaint()
-{
-	xcb_gcontext_t gcontext = xcb_generate_id(xcb_connection);
-	uint32_t mask = XCB_GC_FOREGROUND | XCB_GC_BACKGROUND; // | XCB_GC_FONT;
-	uint32_t value_list[3];
-	value_list[0] = xcb_screen->black_pixel;
-	value_list[1] = xcb_screen->white_pixel;
-	//value_list[2] = font;
-	xcb_void_cookie_t cookie_gc = xcb_create_gc_checked(xcb_connection,
-			gcontext, window, mask, value_list);
-	xcb_generic_error_t* error = xcb_request_check(xcb_connection, cookie_gc);
-	if (error)
-	{
-		cerr << __FUNCTION__ << ": ERROR: can't put_image :"<<
-				unsigned(error->error_code) << endl;
-		xcb_disconnect(xcb_connection);
-		exit(-1);
-	}
-    xcb_copy_area(
-    	XCBWindow::xcb_connection,
-        pix,
-        getWindow(),
-        gcontext,
-        0, 0, 0, 0,
-        1280, 720
-    );
-	xcb_free_gc(xcb_connection, gcontext);
-    xcb_flush(XCBWindow::xcb_connection);
-}
-void shmwindow::onExpose(int x,int y,int width,int height,int count)
-{
-	repaint();
-}
-
-/*
-    xcb_shm_query_version_reply_t*  reply;
-    xcb_shm_segment_info_t          info;
-
-    reply = xcb_shm_query_version_reply(
-        connection,
-        xcb_shm_query_version(connection),
-        NULL
-    );
-
-    if(!reply || !reply->shared_pixmaps){
-        printf("Shm error...\n");
-        exit(0);
-    }
-
-    info.shmid   = shmget(IPC_PRIVATE, WID*HEI*4, IPC_CREAT | 0777);
-    info.shmaddr = shmat(info.shmid, 0, 0);
-
-    info.shmseg = xcb_generate_id(connection);
-    xcb_shm_attach(connection, info.shmseg, info.shmid, 0);
-    shmctl(info.shmid, IPC_RMID, 0);
-
-    uint32_t* data = (uint32_t*)info.shmaddr;
-
-    xcb_pixmap_t pix = xcb_generate_id(connection);
-    xcb_shm_create_pixmap(
-        connection,
-        pix,
-        window,
-        WID, HEI,
-        screen->root_depth,
-        info.shmseg,
-        0
-    );
-
-    int i = 0;
-    for (; i<50000; ++i)
-		data[i] = 0xFFFFFFFF;
-
-    while(1){
-        usleep(10000);
-
-        data[i] = 0xFFFFFFFF;
-        i++;
-
-        xcb_copy_area(
-            connection,
-            pix,
-            window,
-            gcontext,
-            0, 0, 0, 0,
-            WID, HEI
-        );
-
-        xcb_flush(connection);
-    }
-
-    xcb_shm_detach(connection, info.shmseg);
-    shmdt(info.shmaddr);
-
-    xcb_free_pixmap(connection, pix);
-
- */
-
-void shmwindow::copy()
-{
-    xcb_gcontext_t          gcontext;
-    uint32_t value_mask;
-    uint32_t value_list[2];
-
-    value_mask = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
-    value_list[0] = XCBWindow::xcb_screen->black_pixel;
-    value_list[1] = XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_KEY_RELEASE;
-
-    gcontext = xcb_generate_id(XCBWindow::xcb_connection);
-    xcb_create_gc(XCBWindow::xcb_connection, gcontext, getWindow(), value_mask, value_list);
-
-    xcb_copy_area(
-    	XCBWindow::xcb_connection,
-        pix,
-        getWindow(),
-        gcontext,
-        0, 0, 0, 0,
-        1280, 720
-    );
-    xcb_flush(XCBWindow::xcb_connection);
-	xcb_free_gc(xcb_connection, gcontext);
-}
-void shmwindow::onKeyRelease(const KeyDescriptor& key)
-{
-	clog << __PRETTY_FUNCTION__ << ' '<< key.toString() << endl;
-    std::string key_name;
-    if (key.code() == 0x0020)
-        key_name = "space";
-    else if (key.code() == 0xff08)
-        key_name = "backspace";
-    else return; // nothing to dispatch
-    for (auto userInput : builder.userInputs)
-    {
-        if (userInput.key == key_name)
-        {
-            clog << __PRETTY_FUNCTION__ << ' ' << "Should play " << userInput.animation << endl;
-            return;
-        }
-    }
-    clog << __PRETTY_FUNCTION__ << ' ' << "No animation to trigger" << endl;
-}
-void shmwindow::onKeyPress(const KeyDescriptor& key)
-{
-	clog << __PRETTY_FUNCTION__ << ' '<< key.toString() << endl;
-}
 int main(int argc, char** argv)
 {
 	shmwindow* win = shmwindow::create();
-    //xcb_gcontext_t          gcontext;
+	extern SHMEngine* engine;
+	bool testing=false;
+	int filearg = 1;
+	try {
+		if (argc==1)
+		{
+			SceneBuilder builder;
+			builder.parse_containers_from_string(base_scene, engine);
+			scene.containers = builder.nc;
+			scene.assets = builder.na;
+			//return 0;
+		}
+		else if (argc>=2)
+		{
+			SceneBuilder builder;
+			if (std::string(argv[1])=="--testing"){
+				testing = true;
+				filearg = 2;
+			}
+			builder.parse_containers(argv[filearg], engine);
+			scene.containers = builder.nc;
+			scene.assets = builder.na;
+		}
+	} catch (const char* ex) {
+		cout << ex << endl;
+		return 1;
+	}
 	win->configure(Rect((1920-1280)/2,(1080-720)/2,1280,720));
-    auto engine = init_base_engine();
-    auto screen = engine->getScreenBuffer();
-    win->builder.parse_containers(argv[1], engine);
-    Scene scene;
-	scene.containers = win->builder.nc;
-	scene.assets = win->builder.na;
-    draw_scene(scene, engine);
+
+	if (testing)
+		draw_scene2(scene,engine);
+	else
+		draw_scene(scene,engine);
 	win->repaint();
 
-    //int i = 0;
-    //for (; i<50000; ++i)
-	//	data[i] = 0xFFFFFF;
-    if (argc < 2)
-    	return 1;
 
-    win->copy();
-    int dx = 30;
 	while (true)
 	{
 		if (!XCBWindow::pollEvents())
 			break;
-        usleep(10000);
-#if 0
-        Container& container = scene.containers[15];
-        if (dx > 0)
-        {
-        	if (container.area.x > 400)
-        		dx = -dx;
-        }
-        else
-        {
-        	if (container.area.x < -100)
-        		dx = -dx;
-        }
-        container.area.x+=dx;
-
-        //data[i] = 0xFFFFFFFF;
-        //i++;
-
-        draw_scene(scene, screen);
-        win->repaint();
-#endif
 	}
 	return 0;
 }

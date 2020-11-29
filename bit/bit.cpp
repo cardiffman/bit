@@ -6,18 +6,13 @@
  */
 
 #include "bitwindow.h"
-#include <iostream>
-#include <vector>
-#include "read_JPEG_file.h"
-#include "scene.h"
 #include "scene_builder.h"
 #include "engine.h"
 
-using std::cin;
-using std::cout;
-using std::vector;
+#include <iostream>
 using std::cerr;
 using std::endl;
+using std::cout;
 
 Scene scene = {
 		{
@@ -81,19 +76,19 @@ const char* base_scene =
 	      	  	"} "
 		   "]"
 		 ", \"assets\": ["
-		      "{\"label\": \"picture1\", \"url\": \"/home/menright/wip/bits/res/Lesson5/Vice2018.jpg\"}"
-	          ",{\"label\": \"picture2\", \"url\": \"/home/menright/wip/bits/res/Lesson5/BB_Online_Dom_Payoff_1-Sheet_H-Steinfeld_BB_Bridge_Autobot.jpg\"}"
-	          ",{\"label\": \"picture3\", \"url\": \"/home/menright/wip/bits/res/Lesson5/GRC_Tsr1Sheet_GrinchAndMax_.jpg\"}"
-		      ",{\"label\": \"picture4\", \"url\": \"/home/menright/wip/bits/res/Lesson5/MULE_VERT_MAIN_DOM_2764x4096_master.jpg\"}"
-		      ",{\"label\": \"picture5\", \"url\": \"/home/menright/wip/bits/res/Lesson5/TheFavourite2018.jpg\"}"
-		      ",{\"label\": \"picture6\", \"url\": \"/home/menright/wip/bits/res/Lesson5/SecondAct_27x40_1Sheet_RGB.jpg\"}"
-		      ",{\"label\": \"picture7\", \"url\": \"/home/menright/wip/bits/res/Lesson5/AQAMN_VERT_MAIN_DUO_DOM_2764x4096_master.jpg\"}"
-		      ",{\"label\": \"picture8\", \"url\": \"/home/menright/wip/bits/res/Lesson5/TSNGO_TicketingBanner_250x375_r2.jpg\"}"
-		      ",{\"label\": \"picture9\", \"url\": \"/home/menright/wip/bits/res/Lesson5/HolmesAndWatson2018.jpg\"}"
-		      ",{\"label\": \"picture10\", \"url\": \"/home/menright/wip/bits/res/Lesson5/SpiderManIntoTheSpiderVerse2018.jpg\"}"
-		      ",{\"label\": \"picture11\", \"url\": \"/home/menright/wip/bits/res/Lesson5/WTM_HeroPoster.jpg\"}"
-		      ",{\"label\": \"picture12\", \"url\": \"/home/menright/wip/bits/res/Lesson5/MQOS_OneSheet.jpg\"}"
-		      ",{\"label\": \"picture13\", \"url\": \"/home/menright/wip/bits/res/Lesson5/MPR-Payoff_1-Sheet_v8a_Sm.jpg\"}"
+		      "{\"label\": \"picture1\", \"url\": \"/home/micha/bit/res/Lesson5/Vice2018.jpg\"}"
+	          ",{\"label\": \"picture2\", \"url\": \"/home/micha/bit/res/Lesson5/BB_Online_Dom_Payoff_1-Sheet_H-Steinfeld_BB_Bridge_Autobot.jpg\"}"
+	          ",{\"label\": \"picture3\", \"url\": \"/home/micha/bit/res/Lesson5/GRC_Tsr1Sheet_GrinchAndMax_.jpg\"}"
+		      ",{\"label\": \"picture4\", \"url\": \"/home/micha/bit/res/Lesson5/MULE_VERT_MAIN_DOM_2764x4096_master.jpg\"}"
+		      ",{\"label\": \"picture5\", \"url\": \"/home/micha/bit/res/Lesson5/TheFavourite2018.jpg\"}"
+		      ",{\"label\": \"picture6\", \"url\": \"/home/micha/bit/res/Lesson5/SecondAct_27x40_1Sheet_RGB.jpg\"}"
+		      ",{\"label\": \"picture7\", \"url\": \"/home/micha/bit/res/Lesson5/AQAMN_VERT_MAIN_DUO_DOM_2764x4096_master.jpg\"}"
+		      ",{\"label\": \"picture8\", \"url\": \"/home/micha/bit/res/Lesson5/TSNGO_TicketingBanner_250x375_r2.jpg\"}"
+		      ",{\"label\": \"picture9\", \"url\": \"/home/micha/bit/res/Lesson5/HolmesAndWatson2018.jpg\"}"
+		      ",{\"label\": \"picture10\", \"url\": \"/home/micha/bit/res/Lesson5/SpiderManIntoTheSpiderVerse2018.jpg\"}"
+		      ",{\"label\": \"picture11\", \"url\": \"/home/micha/bit/res/Lesson5/WTM_HeroPoster.jpg\"}"
+		      ",{\"label\": \"picture12\", \"url\": \"/home/micha/bit/res/Lesson5/MQOS_OneSheet.jpg\"}"
+		      ",{\"label\": \"picture13\", \"url\": \"/home/micha/bit/res/Lesson5/MPR-Payoff_1-Sheet_v8a_Sm.jpg\"}"
 		   "]"
 		"}";
 
@@ -103,9 +98,11 @@ double get_time()
 	clock_gettime(CLOCK_REALTIME, &ts);
 	return ts.tv_sec + (ts.tv_nsec*1e-9);
 }
-int main(int argc, char**argv)
+int main(int argc, char** argv)
 {
 	GraphicsEngine* engine = init_base_engine();
+	bool testing=false;
+	int filearg = 1;
 	try {
 		if (argc==1)
 		{
@@ -118,7 +115,11 @@ int main(int argc, char**argv)
 		else if (argc>=2)
 		{
 			SceneBuilder builder;
-			builder.parse_containers(argv[1], engine);
+			if (std::string(argv[1])=="--testing"){
+				testing = true;
+				filearg = 2;
+			}
+			builder.parse_containers(argv[filearg], engine);
 			scene.containers = builder.nc;
 			scene.assets = builder.na;
 		}
@@ -128,12 +129,14 @@ int main(int argc, char**argv)
 	}
 	bitwindow* win = bitwindow::create(engine);
 	win->configure(Rect((1920-1280)/2,(1080-720)/2,1280,720));
-	draw_scene(scene,engine);
+
+	if (testing)
+		draw_scene2(scene,engine);
+	else
+		draw_scene(scene,engine);
 	win->repaint();
 
-	double anim_last = get_time();
-	double anim_next = anim_last+1.0/60;
-	double poll_xcb = 0;
+
 	while (true)
 	{
 		if (!XCBWindow::pollEvents())
