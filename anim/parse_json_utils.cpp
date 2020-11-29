@@ -11,6 +11,7 @@
 #include <sstream>
 #include <fcntl.h>
 #include <unistd.h>
+#include <string.h> // strerror
 
 using std::cout;
 using std::endl;
@@ -20,6 +21,10 @@ bool tokenize_json(const char* file, std::vector<jsmntok_t>& tokens, std::string
 	jsmn_parser jp;
 	jsmn_init(&jp);
 	int fd = open(file, O_RDONLY);
+	if (fd == -1) {
+		cout << "Opening " << file << strerror(errno) << endl;
+		return false;
+	}
 	int jslength = lseek(fd, 0, SEEK_END);
 	lseek(fd, 0, SEEK_SET);
 	jstext.resize(jslength);
