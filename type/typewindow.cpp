@@ -62,6 +62,15 @@ void typewindow::repaint()
 		exit(1);
 	}
 	fterror = FT_New_Face(library, "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 0, &face);
+	if (fterror == FT_Err_Cannot_Open_Resource)
+	{
+		fterror = FT_New_Face(library, "/usr/share/fonts/dejavu/DejaVuSans.ttf", 0, &face);
+	}
+	if (fterror == FT_Err_Cannot_Open_Resource)
+	{
+		puts("Can't find font");
+		exit(1);
+	}
 	if (fterror == FT_Err_Unknown_File_Format)
 	{
 		puts("Font not valid");
