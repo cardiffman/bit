@@ -708,9 +708,6 @@ void draw_glyph(uint8_t* buf_ptr, uint32_t buf_pitch, uint8_t* bitmap, const Are
 	}
 }
 #endif
-enum { CLIP_IN, CLIP_PARTIAL, CLIP_OUT };
-int number_line(int low_limit, int size_limit, int low, int size, int* draw_low, int* draw_size);
-int clip_area_to_area(const Area& limit_area, const Area& area, Area& draw);
 
 void draw_glyph(uint8_t* buf_ptr, uint32_t buf_pitch, int width, int height, FT_Bitmap* bitmap, int pen_x, int pen_y)
 {

@@ -28,6 +28,7 @@ struct Scene {
 static const unsigned ID_NULL = 0;
 
 void draw_scene(Scene& scene, GraphicsEngine* engine);
+void draw_scene2(Scene& scene, GraphicsEngine* engine);
 
 
 

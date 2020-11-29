@@ -8,9 +8,12 @@
 #include "scene.h"
 #include "engine.h"
 #include <iostream>
+#include <algorithm>
+#include <ranges>
 
 using std::cout;
 using std::endl;
+using std::vector;
 
 std::ostream& operator <<(std::ostream& out, const Area& diag)
 {
@@ -29,7 +32,6 @@ Container* parent_container(Scene& scene, const Container* container)
 		return nullptr;
 	return parent;
 }
-enum { CLIP_IN, CLIP_PARTIAL, CLIP_OUT };
 int number_line(int low_limit, int size_limit, int low, int size, int* draw_low, int* draw_size)
 {
 	if (low+size < low_limit)
@@ -323,4 +325,258 @@ void draw_scene(Scene& scene, GraphicsEngine* engine)
 	}
 }
 
+struct Region {
+	typedef std::pair<int,int> Box;
+	typedef std::vector<Box> Boxes;
+	struct Band {
+		int top;
+		int height;
+		Boxes boxes; // left,width, non-overlapping sorted by left.
+	};
+	typedef std::vector<Band> Bands;
+	Bands bands; // invariants: bands don't overlap with each other. Sorted by top
+				// The pairs in each band are non-overlapping integer intervals.
+				// If an area overlaps the bounding box, it must also overlap a box in one
+				// of the bands.
+	Area boundingBox; // The bounding box of the region, for even quicker trivial elimination.
+	typedef std::pair<Bands::const_iterator,Bands::const_iterator> BandRange;
+	BandRange vertical_overlap(const Area& area) const;
+	typedef std::pair<Boxes::const_iterator,Boxes::const_iterator> BoxRange;
+	BoxRange horizontal_overlap(const Band& band, const Area& area) const;
+	bool overlaps(const Area& area) const;
+	Region get_overlap(const Area& area) const;
+	static Area union_area(const Area& a, const Area& b) {
+		auto x = std::min(a.x, b.x);
+		auto right = std::max(a.x+a.width, b.x+b.width);
+		auto y = std::min(a.y, b.y);
+		auto bottom = std::max(a.y+a.height, b.y+b.height);
+		return Area(x, right-x, y, bottom-y);
+	}
+	void union_area(const Area& in) {
+		// TK
+		// determine bands, then do this:
+		boundingBox = union_area(boundingBox, in); /// dumbest way.
+	}
+	Region subtract_region_from_rect(const Area& area) const;
+
+};
+Region::BandRange Region::vertical_overlap(const Area& area) const {
+	Region::Bands::const_iterator first,last,p;
+	for (first = bands.begin(); first!=bands.end(); ++first) {
+		int overlap_top, overlap_height;
+		auto overlap = number_line(first->top, first->height, area.y, area.height, &overlap_top, &overlap_height);
+		if (overlap != CLIP_OUT)
+			break;
+	}
+	for (last = first; last!=bands.end(); ++last) {
+		int overlap_top, overlap_height;
+		auto overlap = number_line(last->top, last->height, area.y, area.height, &overlap_top, &overlap_height);
+		if (overlap == CLIP_OUT)
+			break;
+	}
+	return std::make_pair(first,last);
+}
+//Region::BoxRange Region::horizontal_overlap(const Region::Band& band, const Area& area) const {}
+
+Region::BoxRange Region::horizontal_overlap(const Region::Band& band, const Area& area) const {
+	std::vector<std::pair<int,int>>::const_iterator first,last;
+	for (first = band.boxes.begin(); first!=band.boxes.end(); ++first) {
+		int overlap_left, overlap_width;
+		auto overlap = number_line(first->first, first->second, area.y, area.height, &overlap_left, &overlap_width);
+		if (overlap != CLIP_OUT)
+			break;
+	}
+	for (last = first; last!=band.boxes.end(); ++last) {
+		int overlap_top, overlap_height;
+		auto overlap = number_line(last->first, last->second, area.y, area.height, &overlap_top, &overlap_height);
+		if (overlap == CLIP_OUT)
+			break;
+	}
+	return std::make_pair(first,last);
+}
+bool Region::overlaps(const Area& area) const {
+	if (!intersect(area, boundingBox))
+		return false; // trivial reject
+	if (bands.empty())
+		return true; // optimization when region decays to a rectangle.
+	auto vrange = vertical_overlap(area);
+	if (vrange.first == bands.end())
+		return false;
+	// [vrange.first,vrange.second) is the set of bands that vertically match the area.
+	// Now we need to look within each band to see if the area touches one of the boxes.
+	for (auto pband = vrange.first; pband != vrange.second; ++pband)
+	{
+		auto hrange = horizontal_overlap(*pband, area);
+		if (hrange.first != pband->boxes.end()) {
+			// One of the bands has a box interval that overlaps the area.
+			return true;
+		}
+	}
+	return false;
+}
+Region Region::get_overlap(const Area& area) const {
+	Region overlaps;
+	if (!intersect(area, boundingBox))
+		return overlaps; // trivial reject
+	if (bands.empty()) {
+		Area overlap;
+		clip_area_to_area(boundingBox, area, overlap);
+		overlaps.union_area(overlap);
+		return overlaps; // optimization when region decays to a rectangle.
+	}
+	for (auto pband = bands.begin(); pband != bands.end(); pband++)
+	{
+		int overlap_top, overlap_height;
+		auto voverlap = number_line(pband->top, pband->height, area.y, area.height, &overlap_top, &overlap_height);
+		if (voverlap == CLIP_OUT)
+			continue;
+		for (auto pbox = pband->boxes.begin(); pbox != pband->boxes.end(); ++pbox) {
+			int overlap_left, overlap_width;
+			auto overlap = number_line(pbox->first, pbox->second, area.x, area.width, &overlap_left, &overlap_width);
+			if (overlap != CLIP_OUT) {
+				Area output;
+				output.x = overlap_left;
+				output.y = overlap_top;
+				output.height = overlap_height;
+				output.width = overlap_width;
+				overlaps.union_area(output); // !! This does a search :( FIXME
+			}
+		}
+	}
+	return overlaps;
+}
+/*
+	Take the region out of the rect to make a new region.
+	E.g. if the region overlaps the upper-left-hand corner of the rect then remove that upper left hand corner area from
+	the rect.
+	The resulting piece of the plane has to be represented by a region in general, even if this region is merely a rectangle.
+*/
+Region Region::subtract_region_from_rect(const Area& area) const
+{
+	//
+	return Region();
+}
+
+void draw_scene2(Scene& scene, GraphicsEngine* engine)
+{
+	cout << "Drawing2" << endl;
+	for (auto& g : scene.containers) {
+		g.children = 0;
+	}
+	for (auto& g : scene.containers) {
+		if (g.parent_id != ID_NULL)
+			scene.containers[g.parent_id].children++;
+		if (check_parent_loop(scene, g)) {
+			cout << "Container id " << g.id << " has an ancestor loop" << endl;
+			return;
+		}
+	}
+	//Container* parent = nullptr;
+	/*
+	Concept 1:
+		Start with the set of containers to be drawn,
+		and a union of all containers drawn so far.
+		Loop:
+		Obtain the highest priority container.
+		Subtract from it the containers drawn so far (the union of them), giving new_draw.
+		Add new_draw to the union.
+		Draw new_draw.
+		Repeat Loop until all containers have been drawn.
+	Concept 2:
+		Based on Edge Table + Active Edge Table polygon scan conversion such as described at:
+		https://people.eecs.berkeley.edu/~ug/slide/pipeline/assignments/scan/
+		But our figures are axis-aligned rectangles and therefore only have four active edges. The reference treats
+		horizontal edges as a rare special case, where as for us they are the other signifcant case and optimize it.
+		Also our vertical edges' slopes are not 'interesting'.
+		Create a static edge table which has all the left and right edges of all the containers.
+		Each edge has a known container ID, top, bottom, x, and left/right flag.
+		Gather these edges in the static edge table by top then x.
+		For a given container in the edge table, scan-convert the container starting from its left edge to its right edge.
+		Performing scan conversion:
+		Intent is to scan from left edge to right edge and render the Area appropriately in between.
+		Create an active edge table which has the edges that cross/touch the first scanline.
+		These edges should be gathered by x.
+		Walk across the active edge table from left to right.
+		For the current pixel, determine the active containers and within this the priority container.
+		Scan across until the priority container changes as an edge is crossed, rendering from this priority container.
+	Concept 3: Very vague:
+		Make the static Edge Table as in concept 2.
+		Gather up a collection of container blocks which are areas where only one container has to be painted to render
+		the correct image in that area. Use the Edge Table to determine these blocks.
+		Parallelism may result from having a producer which computes the blocks and a consumer which renders the blocks.
+	*/
+#define CONCEPT2
+#ifdef CONCEPT1
+	Region painted;
+	// int number_line(int low_limit, int size_limit, int low, int size, int* draw_low, int* draw_size);
+	unsigned sz = scene.containers.size();
+	for (unsigned ig = 1; ig<scene.containers.size(); ++ig) {
+		Container& g = scene.containers[sz-ig];
+		Area& a = g.area;
+		auto findUnpaintedAreas = [painted](const Area& a) {
+			if (painted.bands.empty() || !intersect(a, painted.boundingBox)) {
+				return std::vector<Area>({a}); // No overlap so the whole Area may be painted.
+			}
+			std::vector<Area> r;
+			for (auto p : painted.bands) {
+				if (bottom(a) < p.top)
+					break;
+				//
+			}
+			return r;
+		};
+		std::vector<Area> unpainted = findUnpaintedAreas(a);
+		draw_container(g, scene, engine->getScreenBuffer(), engine);
+	}
+#elif defined(CONCEPT2)
+	vector<Container> transformed_containers;
+	std::transform(scene.containers.begin(), scene.containers.end(), back_inserter(transformed_containers),[scene](const Container& c) {
+		Container r = c;
+		int x=0; int y=0;
+		const Container* parent = c.parent_id?&scene.containers[c.parent_id]:nullptr;
+		while (parent) {
+			x+=parent->area.x;
+			y+=parent->area.y;
+			parent = parent->parent_id?&scene.containers[parent->parent_id]:nullptr;
+		}
+		r.area.x += x;
+		r.area.y += y;
+		r.parent_id = 0;
+		return r;
+	});
+	vector<unsigned> ordered_containers;
+	cout << "scene containers " << scene.containers.size() << endl;
+	std::transform(transformed_containers.begin(), transformed_containers.end(), back_inserter(ordered_containers),[](const Container& c) { return c.id; });
+	cout << "Ordered containers size " << ordered_containers.size() << endl;
+	std::sort(ordered_containers.begin(), ordered_containers.end(), [transformed_containers](int cid1, int cid2){
+		Container const & c1 = transformed_containers[cid1];
+		Container const & c2 = transformed_containers[cid2];
+		return c1.area.y<c2.area.y || (c1.area.y==c2.area.y && (c1.area.x<c2.area.x || (c1.area.x==c1.area.x && c1.id>c2.id)));
+	});
+	cout << "sorted ";
+	for (auto cid: ordered_containers)
+		cout << cid << '.' << transformed_containers[cid].area.y << ',' << transformed_containers[cid].area.x << ' ';
+	cout << endl;
+	vector<unsigned> active_containers;
+	int first_ordered=0;
+	int last_ordered=0;
+	for (int y=0; y<16/*engine->getScreenBuffer()->dims.height*/; y++) {
+		cout << "Drawing2 " << y << endl;
+		while (transformed_containers[ordered_containers[first_ordered]].area.y!=y){
+			cout << "Drawing2 first_ordered " << first_ordered << endl;
+			first_ordered++;
+		}
+		last_ordered = std::min(last_ordered,first_ordered);
+		while (transformed_containers[ordered_containers[last_ordered]].area.y==y){
+			cout << "Drawing2 last_ordered " << last_ordered << " " << ordered_containers[last_ordered] <<'.' << transformed_containers[ordered_containers[last_ordered]].area.y << endl;
+			last_ordered++;
+		}
+		for (int ci = first_ordered; ci<=last_ordered; ++ci){
+			cout << "Actually drawing container " << ordered_containers[ci] << endl;
+			draw_container(transformed_containers[ordered_containers[ci]], scene, engine->getScreenBuffer(), engine);
+		}
+		break;
+	}
+#endif
+}
 
