@@ -70,7 +70,7 @@ void BlittingEngine::stretchSrcCopy(GraphicsBuffer *pdst, const Area &dstArea, G
 	int x_ratio = (int)((srcArea.width << 16) / dstArea.width) + 1;
 	int y_ratio = (int)((srcArea.height << 16) / dstArea.height) + 1;
     int a, b, c, d, x, y, index ;
-    float x_diff, y_diff, blue, red, green ;
+    float x_diff, y_diff, blue, red, green, alpha ;
 #endif
     int offset = 0 ;
     for (int i=0;i<dstArea.height;i++) {
@@ -113,6 +113,8 @@ void BlittingEngine::stretchSrcCopy(GraphicsBuffer *pdst, const Area &dstArea, G
             // Yr = Ar(1-w)(1-h) + Br(w)(1-h) + Cr(h)(1-w) + Dr(wh)
             red = ((a>>16)&0xff)*(1-x_diff)*(1-y_diff) + ((b>>16)&0xff)*(x_diff)*(1-y_diff) +
                   ((c>>16)&0xff)*(y_diff)*(1-x_diff)   + ((d>>16)&0xff)*(x_diff*y_diff);
+            alpha = ((a>>24)&0xff)*(1-x_diff)*(1-y_diff) + ((b>>24)&0xff)*(x_diff)*(1-y_diff) +
+                  ((c>>24)&0xff)*(y_diff)*(1-x_diff)   + ((d>>24)&0xff)*(x_diff*y_diff);
 #else
             blue = (int64_t)((a&0xff)*(65536-x_diff)*(65536-y_diff) + (b&0xff)*(x_diff)*(65536-y_diff) +
                    (c&0xff)*(y_diff)*(65536-x_diff)   + (d&0xff)*(x_diff*y_diff))>>32;
@@ -126,10 +128,16 @@ void BlittingEngine::stretchSrcCopy(GraphicsBuffer *pdst, const Area &dstArea, G
             // Yr = Ar(1-w)(1-h) + Br(w)(1-h) + Cr(h)(1-w) + Dr(wh)
             red = (int64_t)(((a>>16)&0xff)*(65536-x_diff)*(65536-y_diff) + ((b>>16)&0xff)*(x_diff)*(65536-y_diff) +
                   ((c>>16)&0xff)*(y_diff)*(65536-x_diff)   + ((d>>16)&0xff)*(x_diff*y_diff))>>32;
+            alpha = (int64_t)(((a>>24)&0xff)*(65536-x_diff)*(65536-y_diff) + ((b>>24)&0xff)*(x_diff)*(65536-y_diff) +
+                  ((c>>24)&0xff)*(y_diff)*(65536-x_diff)   + ((d>>24)&0xff)*(x_diff*y_diff))>>32;
 #endif
 
             idstptr[(i+dstArea.y)*dst_rowbytes/4+dstArea.x+j] =
+			#if 0
                     0xff000000 | // hardcode alpha
+			#else
+                    ((((int)alpha)<<24)&0xff000000) |
+			#endif
                     ((((int)red)<<16)&0xff0000) |
                     ((((int)green)<<8)&0xff00) |
                     ((int)blue) ;
@@ -215,14 +223,10 @@ void BlittingEngine::stretchSrcOver(GraphicsBuffer* pdst, const Area& dstArea, G
             unsigned cweight = (65535-x_diff)*y_diff;
             unsigned dweight = x_diff*y_diff;
             // Yc = Ac(1-w)(1-h) + Bc(w)(1-h) + Cc(h)(1-w) + Dc(wh)
-            //blue = (a&255 + b&255 + c&255 + d&255)/4;
-            blue = ((a&255LL)*aweight + (b&255LL)*bweight + (c&255LL)*cweight + (d&255LL)*dweight)>>32;/*(int64_t)((a&0xff)*(65536-x_diff)*(65536-y_diff) + (b&0xff)*(x_diff)*(65536-y_diff) +
-                   (c&0xff)*(y_diff)*(65536-x_diff)   + (d&0xff)*(x_diff*y_diff))>>32;*/
-            alpha = a>>24;/*(int64_t)(((a>>24)&0xff)*(65536-x_diff)*(65536-y_diff) + ((b>>24)&0xff)*(x_diff)*(65536-y_diff) +
-                  ((c>>24)&0xff)*(y_diff)*(65536-x_diff)   + ((d>>24)&0xff)*(x_diff*y_diff))>>32;*/
-            alpha = blue;
+            blue = ((a&255LL)*aweight + (b&255LL)*bweight + (c&255LL)*cweight + (d&255LL)*dweight)>>32;
             alpha = (((a>>24)&255LL)*aweight + ((b>>24)&255LL)*bweight + ((c>>24)&255LL)*cweight + ((d>>24)&255LL)*dweight)>>32;
-            red = green = blue;
+            red =   (((a>>16)&255LL)*aweight + ((b>>16)&255LL)*bweight + ((c>>16)&255LL)*cweight + ((d>>16)&255LL)*dweight)>>32;
+			green = (((a>> 8)&255LL)*aweight + ((b>> 8)&255LL)*bweight + ((c>> 8)&255LL)*cweight + ((d>> 8)&255LL)*dweight)>>32;
             auto& p = idstptr[(i+dstArea.y)*dst_rowbytes/4+dstArea.x+j];
             p = srcOver32((alpha<<24)|(red<<16)|(green<<8)|blue, p);
             //p = srcOver32((128<<24)|(red<<16)|(green<<8)|blue, p);
