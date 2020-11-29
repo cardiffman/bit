@@ -1,0 +1,17 @@
+{
+	"containers": [
+        {
+            "area": { "x":0, "y":0, "width": 1280, "height": 720}
+            , "fill": [ 80,80,80]
+        },
+		{
+			"label": "top",
+			"area": { "x":540, "y":260, "width":200,"height":200 },
+			"asset": "picture1"
+		}
+	],
+	"assets": [ 
+	{"label": "picture1", "url":"/home/micha/bit/res/Lesson5/image.png"}
+
+		]
+}

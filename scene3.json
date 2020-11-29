@@ -1,0 +1,150 @@
+{
+	"containers": [
+		{
+			"label": "bkg",
+			"area": { "x":0, "y":0, "width":1280,"height":720 },
+			"fill": [255,20,40,70]
+			,"asset": "test"
+		},
+		{
+			"label": "top",
+			"area": { "x":0, "y":0, "width":1280,"height":720 },
+			"fill": [255,20,40,70],
+			"containers": [
+				{ "label":"bpbox","area": { "x":0,"y":12,"width":1280,"height":317}, "fill":[255,80,80,80]
+				 ,"containers": [
+				   { "label":"bp1", "area": { "x":  0,"y":0,"width":200,"height":317}, "asset":"picture1", "fill":[255,255,80,80] },
+				   { "label":"bp2", "area": { "x":200,"y":0,"width":200,"height":317}, "asset":"picture2", "fill":[255,255,255,80] },
+				   { "label":"bp3", "area": { "x":400,"y":0,"width":200,"height":317}, "asset":"picture3", "fill":[255,255,80,80] },
+				   { "label":"bp4", "area": { "x":600,"y":0,"width":200,"height":317}, "asset":"picture4", "fill":[255,255,255,80] },
+				   { "label":"bp5", "area": { "x":800,"y":0,"width":200,"height":317}, "asset":"picture5", "fill":[255,255,80,80] },
+				   { "label":"bp6", "area": { "x":1000,"y":0,"width":200,"height":317}, "asset":"picture6", "fill":[255,255,255,80] },
+				   { "label":"bp7", "area": { "x":1200,"y":0,"width":200,"height":317}, "asset":"picture7", "fill":[255,255,80,80] },
+				   { "label":"bp8", "area": { "x":1400,"y":0,"width":200,"height":317}, "asset":"picture8", "fill":[255,255,255,80] },
+				   { "label":"bp9", "area": { "x":1600,"y":0,"width":200,"height":317}, "asset":"picture9", "fill":[255,255,80,80] },
+				   { "label":"bp10", "area": { "x":1800,"y":0,"width":200,"height":317}, "asset":"picture10", "fill":[255,255,255,80] },
+				   { "label":"bp11", "area": { "x":2000,"y":0,"width":200,"height":317}, "asset":"picture11", "fill":[255,255,80,80] }
+				 ]
+				},
+				{ "label":"lpbox","area": { "x":100,"y":200,"width":1080,"height":208}, "fill":[255,80,80,80]
+				 ,"containers": [ {"label":"lcscroll", "area":{"x":0,"y":0,"width":1080,"height":208}
+    				 ,"containers": [
+				   { "label":"lc00","area": { "x":  0,"y":0,"width":128,"height":208}, 
+					   "containers": [
+					   { "label":"lc00pic","area":{"x":4,"y":4,"width":120,"height":200}, "asset":"picture1", "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":0,"width":128,"height":4}, "fill":[255,80,80,255] },
+					   { "area":{"x":0,"y":204,"width":128,"height":4}, "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":4,"width":4,"height":200}, "fill":[255,255,80,80] },
+					   { "area":{"x":124,"y":4,"width":4,"height":200}, "fill":[255,255,255,255] }
+					   ]},
+				   { "label":"lc01","area": { "x":128,"y":0,"width":128,"height":208},
+					   "containers": [
+					   { "label":"lc01pic","area":{"x":4,"y":4,"width":120,"height":200}, "asset":"picture2", "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":0,"width":128,"height":4}, "fill":[255,80,80,255] },
+					   { "area":{"x":0,"y":204,"width":128,"height":4}, "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":4,"width":4,"height":200}, "fill":[255,255,80,80] },
+					   { "area":{"x":124,"y":4,"width":4,"height":200}, "fill":[255,255,255,255] }
+					   ]},
+				   { "label":"lc02","area": { "x":256,"y":0,"width":128,"height":208},
+					   "containers": [
+					   { "label":"lc02pic","area":{"x":4,"y":4,"width":120,"height":200}, "asset":"picture3", "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":0,"width":128,"height":4}, "fill":[255,80,80,255] },
+					   { "area":{"x":0,"y":204,"width":128,"height":4}, "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":4,"width":4,"height":200}, "fill":[255,255,80,80] },
+					   { "area":{"x":124,"y":4,"width":4,"height":200}, "fill":[255,255,255,255] }
+					   ]},
+				   { "label":"lc03","area": { "x":384,"y":0,"width":128,"height":208},
+					   "containers": [
+					   { "label":"lc03pic","area":{"x":4,"y":4,"width":120,"height":200}, "asset":"picture4", "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":0,"width":128,"height":4}, "fill":[255,80,80,255] },
+					   { "area":{"x":0,"y":204,"width":128,"height":4}, "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":4,"width":4,"height":200}, "fill":[255,255,80,80] },
+					   { "area":{"x":124,"y":4,"width":4,"height":200}, "fill":[255,255,255,255] }
+					   ]},
+				   { "label":"lc04","area": { "x":512,"y":0,"width":128,"height":208},
+					   "containers": [
+					   { "label":"lc04pic","area":{"x":4,"y":4,"width":120,"height":200}, "asset":"picture5", "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":0,"width":128,"height":4}, "fill":[255,80,80,255] },
+					   { "area":{"x":0,"y":204,"width":128,"height":4}, "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":4,"width":4,"height":200}, "fill":[255,255,80,80] },
+					   { "area":{"x":124,"y":4,"width":4,"height":200}, "fill":[255,255,255,255] }
+					   ]},
+				   { "label":"lc05","area": { "x":640,"y":0,"width":128,"height":208},
+					   "containers": [
+					   { "label":"lc05pic","area":{"x":4,"y":4,"width":120,"height":200}, "asset":"picture6", "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":0,"width":128,"height":4}, "fill":[255,80,80,255] },
+					   { "area":{"x":0,"y":204,"width":128,"height":4}, "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":4,"width":4,"height":200}, "fill":[255,255,80,80] },
+					   { "area":{"x":124,"y":4,"width":4,"height":200}, "fill":[255,255,255,255] }
+					   ]},
+				   { "label":"lc06","area": { "x":768,"y":0,"width":128,"height":208},
+					   "containers": [
+					   { "label":"lc06pic","area":{"x":4,"y":4,"width":120,"height":200}, "asset":"picture7", "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":0,"width":128,"height":4}, "fill":[255,80,80,255] },
+					   { "area":{"x":0,"y":204,"width":128,"height":4}, "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":4,"width":4,"height":200}, "fill":[255,255,80,80] },
+					   { "area":{"x":124,"y":4,"width":4,"height":200}, "fill":[255,255,255,255] }
+					   ]},
+				   { "label":"lc07","area": { "x":896,"y":0,"width":128,"height":208},
+					   "containers": [
+					   { "label":"lc07pic","area":{"x":4,"y":4,"width":120,"height":200}, "asset":"picture8", "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":0,"width":128,"height":4}, "fill":[255,80,80,255] },
+					   { "area":{"x":0,"y":204,"width":128,"height":4}, "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":4,"width":4,"height":200}, "fill":[255,255,80,80] },
+					   { "area":{"x":124,"y":4,"width":4,"height":200}, "fill":[255,255,255,255] }
+					   ]},
+				   { "label":"lc08","area": { "x":1024,"y":0,"width":128,"height":208},
+					   "containers": [
+					   { "label":"lc08pic","area":{"x":4,"y":4,"width":120,"height":200}, "asset":"picture9", "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":0,"width":128,"height":4}, "fill":[255,80,80,255] },
+					   { "area":{"x":0,"y":204,"width":128,"height":4}, "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":4,"width":4,"height":200}, "fill":[255,255,80,80] },
+					   { "area":{"x":124,"y":4,"width":4,"height":200}, "fill":[255,255,255,255] }
+					   ]},
+				   { "label":"lc09","area": { "x":1152,"y":0,"width":128,"height":208},
+					   "containers": [
+					   { "label":"lc09pic","area":{"x":4,"y":4,"width":120,"height":200}, "asset":"picture10", "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":0,"width":128,"height":4}, "fill":[255,80,80,255] },
+					   { "area":{"x":0,"y":204,"width":128,"height":4}, "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":4,"width":4,"height":200}, "fill":[255,255,80,80] },
+					   { "area":{"x":124,"y":4,"width":4,"height":200}, "fill":[255,255,255,255] }
+					   ]},
+				   { "label":"lc10","area": { "x":1280,"y":0,"width":128,"height":208},					   
+					   "containers": [
+					   { "label":"lc10pic","area":{"x":4,"y":4,"width":120,"height":200}, "asset":"picture11", "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":0,"width":128,"height":4}, "fill":[255,80,80,255] },
+					   { "area":{"x":0,"y":204,"width":128,"height":4}, "fill":[255,255,80,80] },
+					   { "area":{"x":0,"y":4,"width":4,"height":200}, "fill":[255,255,80,80] },
+					   { "area":{"x":124,"y":4,"width":4,"height":200}, "fill":[255,255,255,255] }
+					   ]}
+	  			 ]}]
+				}
+			]
+		}
+	],
+	"assets": [ 
+	{"label": "test", "url":"/home/micha/bit/res/Lesson5/image.png"},
+	{"label": "picture1", "url":"/home/micha/bit/res/Lesson5/Vice2018.jpg"},	
+	{"label": "picture2", "url":"/home/micha/bit/res/Lesson5/BB_Online_Dom_Payoff_1-Sheet_H-Steinfeld_BB_Bridge_Autobot.jpg"},
+	{"label": "picture3", "url":"/home/micha/bit/res/Lesson5/GRC_Tsr1Sheet_GrinchAndMax_.jpg"},
+	{"label": "picture4", "url":"/home/micha/bit/res/Lesson5/MULE_VERT_MAIN_DOM_2764x4096_master.jpg"},
+	{"label": "picture5", "url":"/home/micha/bit/res/Lesson5/TheFavourite2018.jpg"},
+	{"label": "picture6", "url":"/home/micha/bit/res/Lesson5/SecondAct_27x40_1Sheet_RGB.jpg"},
+	{"label": "picture7", "url":"/home/micha/bit/res/Lesson5/AQAMN_VERT_MAIN_DUO_DOM_2764x4096_master.jpg"},
+	{"label": "picture8", "url":"/home/micha/bit/res/Lesson5/TSNGO_TicketingBanner_250x375_r2.jpg"},
+	{"label": "picture9", "url":"/home/micha/bit/res/Lesson5/HolmesAndWatson2018.jpg"},
+	{"label": "picture10", "url":"/home/micha/bit/res/Lesson5/SpiderManIntoTheSpiderVerse2018.jpg"},
+	{"label": "picture11", "url":"/home/micha/bit/res/Lesson5/WTM_HeroPoster.jpg"},
+	{"label": "picture12", "url":"/home/micha/bit/res/Lesson5/MQOS_OneSheet.jpg"},
+	{"label": "picture13", "url":"/home/micha/bit/res/Lesson5/MPR-Payoff_1-Sheet_v8a_Sm.jpg"}
+
+		]
+	,"animations": [
+	 { "label":"posters_out_left", "container": "small_posters", "duration": 4000, "parameters": [ {"x": [ -1000 ]} ] }
+	,{ "label":"posters_in_right", "container": "small_posters", "duration": 4000, "parameters": [ {"x": [ -1000 ]} ] } 
+	]
+	,"user_input": [
+		{ "key": "space", "animation": "posters_out_left" }
+	   ,{ "key": "backspace", "animation": "posters_in_right" }
+	]
+}
