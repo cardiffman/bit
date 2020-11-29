@@ -27,7 +27,16 @@ int main(){
 
     //connect to the X server and get screen
 
-    connection = xcb_connect(NULL, NULL);
+    int xcb_screen_number;
+
+    connection = xcb_connect(NULL, &xcb_screen_number);
+
+    if (connection == 0)
+    {
+        fputs("Can't make X connection\n",stderr);
+        exit(1);
+    }
+
     screen = xcb_setup_roots_iterator(xcb_get_setup(connection)).data;
 
     //create a window
@@ -60,12 +69,6 @@ int main(){
     gcontext = xcb_generate_id(connection);
     xcb_create_gc(connection, gcontext, window, value_mask, value_list);
 
-    //map the window onto the screen
-
-    xcb_map_window(connection, window);
-    xcb_flush(connection);
-
-
     //Shm test
     xcb_shm_query_version_reply_t*  reply;
     xcb_shm_segment_info_t          info;
@@ -86,9 +89,13 @@ int main(){
 
     info.shmseg = xcb_generate_id(connection);
     xcb_shm_attach(connection, info.shmseg, info.shmid, 0);
-    shmctl(info.shmid, IPC_RMID, 0);
 
     uint32_t* data = (uint32_t*)info.shmaddr;
+    for (int x = 0; x<WID; ++x) {
+        for (int y = 0; y<HEI; ++y) {
+            data[y*WID+x]=0xFF0000FF;
+        }
+    }
 
     xcb_pixmap_t pix = xcb_generate_id(connection);
     xcb_shm_create_pixmap(
@@ -101,6 +108,9 @@ int main(){
         0
     );
 
+
+    xcb_map_window(connection, window);
+    xcb_flush(connection);
     int i = 0;
     for (; i<50000; ++i)
 		data[i] = 0xFFFFFFFF;
