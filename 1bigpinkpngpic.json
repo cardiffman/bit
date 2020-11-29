@@ -1,10 +1,10 @@
 {
 	"containers": [
         {
-        	"label": "bkg",
-            "area": { "x":0, "y":0, "width": 1280, "height": 720}
-            , "fill": [ 238,204,221]
-        },
+			"label": "bkg",
+			"area": { "x":0, "y":0, "width": 1280, "height": 720}
+			, "fill": [ 238,204,221]
+		},
 		{
 			"label": "top",
 			"area": { "x":280, "y":0, "width":720,"height":720 },
