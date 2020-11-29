@@ -9,6 +9,8 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
+#include <errno.h>
 #include "engine.h"
 
 png_byte color_type;
@@ -38,8 +40,8 @@ void read_png_file(const char* file_name, GraphicsEngine* engine, GraphicsBuffer
 	/* open file and test for it being a png */
 	FILE *fp = fopen(file_name, "rb");
 	if (!fp)
-		abort_("[read_png_file] File %s could not be opened for reading",
-				file_name);
+		abort_("[read_png_file] File %s could not be opened for reading:%s",
+				file_name, strerror(errno));
 	fread(header, 1, 8, fp);
 	if (png_sig_cmp(header, 0, 8))
 		abort_("[read_png_file] File %s is not recognized as a PNG file",
