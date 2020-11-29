@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.7)
+cmake_minimum_required(VERSION 3.6.2)
+#if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows" AND NOT CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
+if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
 project(bit C CXX)
 
 pkg_check_Modules(XCB_SHM REQUIRED xcb-shm)
@@ -25,6 +27,8 @@ target_compile_options(bit PUBLIC ${SDL2_CFLAGS_OTHER} ${XCB_CFLAGS_OTHER})
 
 add_executable(shmtrial
 	shmtrial.cpp
+	shmwindow.cpp
 	)
 target_include_directories(shmtrial PUBLIC ../anim ../jsmn ../XCB ${CMAKE_CURRENT_SOURCE_DIR}/.. ${KS_INCLUDE_DIRS} ${XCB_INCLUDE_DIRS})
 target_link_libraries(shmtrial anim jsmn xcbwindow ${KS_LIBRARIES} ${XCB_LIBRARIES} ${XCB_SHM_LIBRARIES} ${PNG_LIBRARIES} ${JPEG_LIBRARIES} ${FT_LIBRARIES})
+endif()
