@@ -20,6 +20,17 @@
 using std::cout;
 using std::endl;
 
+#define LOG(A) cout << __FUNCTION__ << ' ' << A << ' ' << __FILE__ << ":" << __LINE__ << endl
+
+#undef FTERRORS_H_
+#define FT_ERROR_START_LIST     switch ( error_code ) {
+#define FT_ERRORDEF( e, v, s )    case v: return s;
+#define FT_ERROR_END_LIST       }
+const char* ft_err_string(int error_code) {
+#include FT_ERRORS_H
+	return __FUNCTION__;
+}
+
 SceneBuilder::SceneBuilder() {
 	container_id = 0;
 	asset_id = 0;
@@ -756,39 +767,32 @@ std::list<FontUsage> fonts;
 FT_Library library;
 FontUsage& make_font(const std::string& fontfile, int size)
 {
+	auto finalpath = fontfile;
+	if (!finalpath.size())
+		finalpath = "/usr/share/fonts-droid-fallback/truetype/DroidSansFallback.ttf";
 	for (auto& font: fonts)
 	{
-		if (font.font == fontfile && font.size == size)
+		if (font.font == finalpath && font.size == size)
 			return font;
 	}
 	FontUsage font;
-	font.font = fontfile;
+	font.font = finalpath;
 	font.library = &library;
 	int fterror;
-	if (fontfile.size())
-	{
-		fterror = FT_New_Face(library, fontfile.c_str(), 0, &font.face);
-	}
-	else
-	{
-		fterror = FT_New_Face(library,
-				"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 0,
-				&font.face);
-		//fterror = FT_New_Face(library, "/usr/share/fonts-droid-fallback/truetype/DroidSansFallback.ttf", 0, &face);
-	}
+	fterror = FT_New_Face(library, finalpath.c_str(), 0, &font.face);
 	if (fterror == FT_Err_Unknown_File_Format)
 	{
-		puts("Font not valid");
+		LOG("Font not valid" << ft_err_string(fterror));
 		exit(1);
 	}
 	else if (fterror)
 	{
-		printf("FreeType error %d\n", fterror);
+		LOG("FreeType font " << finalpath << " error " << ft_err_string(fterror));
 		exit(1);
 	}
 	else if (font.face == NULL)
 	{
-		printf("FreeType face is null but no error?\n");
+		LOG("FreeType face is null but no error?");
 		exit(1);
 	}
 
@@ -796,7 +800,7 @@ FontUsage& make_font(const std::string& fontfile, int size)
 	fterror = FT_Set_Pixel_Sizes(font.face, 0, font.size); //16 pixels high
 	if (fterror)
 	{
-		cout << "Set pixel sizes failed. " << fterror << endl;
+		LOG("Set pixel sizes failed. " << ft_err_string(fterror));
 		//continue; /* ignore errors */
 	}
 	fonts.push_back(font);
@@ -808,7 +812,7 @@ void SceneBuilder::prepare_text(GraphicsEngine* engine)
 	int fterror = FT_Init_FreeType(&library);
 	if (fterror)
 	{
-		puts("freetype library");
+		LOG("freetype library " << ft_err_string(fterror));
 		exit(1);
 	}
 	for (auto t : text_by_id)
@@ -912,7 +916,10 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 {
 	std::vector<jsmntok_t> tokens;
 	std::string jstext;
-	tokenize_json(file, tokens, jstext);
+	if (!tokenize_json(file, tokens, jstext))
+	{
+		throw std::runtime_error("tokenizing failed");
+	}
 	cout << "js: chars provided " << jstext.size() << endl;
 	//dump_jstokens(tokens, jstext);
 	auto ptokens = tokens.begin();
