@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.6.2)
 project(bit C CXX)
 
+set(CMAKE_CXX_STANDARD 20)
+
 find_package(PkgConfig REQUIRED)
 
 MESSAGE(STATUS "CMAKE_SYSTEM_NAME ${CMAKE_SYSTEM_NAME}")

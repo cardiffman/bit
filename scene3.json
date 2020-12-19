@@ -28,8 +28,8 @@
 				},
 				{ "label":"lpbox","area": { "x":100,"y":200,"width":1080,"height":208}, "fill":[255,80,80,80]
 				 ,"containers": [ {"label":"lcscroll", "area":{"x":0,"y":0,"width":1080,"height":208}
-    				 ,"containers": [
-				   { "label":"lc00","area": { "x":  0,"y":0,"width":128,"height":208}, 
+				 ,"containers": [
+				   { "label":"lc00","area": { "x":  0,"y":0,"width":128,"height":208},
 					   "containers": [
 					   { "label":"lc00pic","area":{"x":4,"y":4,"width":120,"height":200}, "asset":"picture1", "fill":[255,255,80,80] },
 					   { "area":{"x":0,"y":0,"width":128,"height":4}, "fill":[255,80,80,255] },
@@ -109,7 +109,7 @@
 					   { "area":{"x":0,"y":4,"width":4,"height":200}, "fill":[255,255,80,80] },
 					   { "area":{"x":124,"y":4,"width":4,"height":200}, "fill":[255,255,255,255] }
 					   ]},
-				   { "label":"lc10","area": { "x":1280,"y":0,"width":128,"height":208},					   
+				   { "label":"lc10","area": { "x":1280,"y":0,"width":128,"height":208},
 					   "containers": [
 					   { "label":"lc10pic","area":{"x":4,"y":4,"width":120,"height":200}, "asset":"picture11", "fill":[255,255,80,80] },
 					   { "area":{"x":0,"y":0,"width":128,"height":4}, "fill":[255,80,80,255] },
@@ -117,14 +117,14 @@
 					   { "area":{"x":0,"y":4,"width":4,"height":200}, "fill":[255,255,80,80] },
 					   { "area":{"x":124,"y":4,"width":4,"height":200}, "fill":[255,255,255,255] }
 					   ]}
-	  			 ]}]
+				 ]}]
 				}
 			]
 		}
 	],
-	"assets": [ 
+	"assets": [
 	{"label": "test", "url":"/home/micha/bit/res/Lesson5/image.png"},
-	{"label": "picture1", "url":"/home/micha/bit/res/Lesson5/Vice2018.jpg"},	
+	{"label": "picture1", "url":"/home/micha/bit/res/Lesson5/Vice2018.jpg"},
 	{"label": "picture2", "url":"/home/micha/bit/res/Lesson5/BB_Online_Dom_Payoff_1-Sheet_H-Steinfeld_BB_Bridge_Autobot.jpg"},
 	{"label": "picture3", "url":"/home/micha/bit/res/Lesson5/GRC_Tsr1Sheet_GrinchAndMax_.jpg"},
 	{"label": "picture4", "url":"/home/micha/bit/res/Lesson5/MULE_VERT_MAIN_DOM_2764x4096_master.jpg"},
@@ -141,7 +141,7 @@
 		]
 	,"animations": [
 	 { "label":"posters_out_left", "container": "small_posters", "duration": 4000, "parameters": [ {"x": [ -1000 ]} ] }
-	,{ "label":"posters_in_right", "container": "small_posters", "duration": 4000, "parameters": [ {"x": [ -1000 ]} ] } 
+	,{ "label":"posters_in_right", "container": "small_posters", "duration": 4000, "parameters": [ {"x": [ -1000 ]} ] }
 	]
 	,"user_input": [
 		{ "key": "space", "animation": "posters_out_left" }
