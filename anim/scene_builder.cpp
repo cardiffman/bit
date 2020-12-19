@@ -11,10 +11,12 @@
 #include <fstream>
 #include <iomanip>
 #include <list>
+#include <variant> // For error union.
 #include "read_JPEG_file.h"
 #include "read_png_file.h"
 #include "parse_json_utils.h"
 #include <algorithm>
+#include <stdlib.h>
 #include "ft2build.h"
 #include FT_FREETYPE_H
 
@@ -794,7 +796,13 @@ struct FontUsage
 };
 std::list<FontUsage> fonts;
 FT_Library library;
-FontUsage& make_font(const std::string& fontfile, int size)
+typedef std::variant<FontUsage,int> FontExpected;
+FontExpected make_font_expected(int error) {
+	return FontExpected(error);
+}
+
+FontExpected
+make_font(const std::string& fontfile, int size)
 {
 	auto finalpath = fontfile;
 	if (!finalpath.size())
@@ -802,7 +810,7 @@ FontUsage& make_font(const std::string& fontfile, int size)
 	for (auto& font: fonts)
 	{
 		if (font.font == finalpath && font.size == size)
-			return font;
+			return std::variant<FontUsage,int>(font);
 	}
 	FontUsage font;
 	font.font = finalpath;
@@ -812,17 +820,17 @@ FontUsage& make_font(const std::string& fontfile, int size)
 	if (fterror == FT_Err_Unknown_File_Format)
 	{
 		LOG("Font not valid" << ft_err_string(fterror));
-		exit(1);
+		return std::variant<FontUsage,int>(-1);
 	}
 	else if (fterror)
 	{
 		LOG("FreeType font " << finalpath << " error " << ft_err_string(fterror));
-		exit(1);
+		return std::variant<FontUsage,int>(-1);
 	}
 	else if (font.face == NULL)
 	{
 		LOG("FreeType face is null but no error?");
-		exit(1);
+		return std::variant<FontUsage,int>(-1);
 	}
 
 	font.size = size ? size : 16;
@@ -847,7 +855,10 @@ void SceneBuilder::prepare_text(GraphicsEngine* engine)
 	for (auto t : text_by_id)
 	{
 		//FT_Face face;
-		FontUsage font = make_font(t.second.font, t.second.size);
+		auto exp_font = make_font(t.second.font, t.second.size);
+		if (exp_font.index() != 0)
+			exit(1);
+		FontUsage font = std::get<FontUsage>(exp_font);
 		FT_Face& face = font.face;
 		FT_GlyphSlot slot = face->glyph; /* a small shortcut */
 		int pen_x, pen_y, n;

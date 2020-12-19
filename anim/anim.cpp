@@ -25,9 +25,9 @@ std::ostream& operator <<(std::ostream& out, const RectSize& diag)
 	out << '(' << diag.width << ',' << diag.height << ')';
 	return out;
 }
-Container* parent_container(Scene& scene, const Container* container)
+const Container* parent_container(Scene const& scene, const Container* container)
 {
-	Container* parent = &scene.containers[container->parent_id];
+	const Container* parent = &scene.containers[container->parent_id];
 	if (parent->id == ID_NULL)
 		return nullptr;
 	return parent;
@@ -85,7 +85,7 @@ int clip_container_to_heirarchy(Scene& scene, const Container& container, Area& 
 {
 	draw = container.area;
 	screen = container.area;
-	Container* parent = parent_container(scene, &container);
+	const Container* parent = parent_container(scene, &container);
 	int res = CLIP_IN;
 	while (parent)
 	{
@@ -108,12 +108,12 @@ int clip_container_to_heirarchy(Scene& scene, const Container& container, Area& 
  * @param draw the area to start with and the final clipped area
  * @param screen the final area without clipping.
  */
-int clip_area_to_heirarchy(Scene& scene, const Container& container, Area& draw, Area& screen)
+int clip_area_to_heirarchy(const Scene& scene, const Container& container, Area& draw, Area& screen)
 {
 	draw.x += container.area.x;
 	draw.y += container.area.y;
 	screen = draw;
-	Container* parent = parent_container(scene, &container);
+	const Container* parent = parent_container(scene, &container);
 	int res = CLIP_IN;
 	while (parent)
 	{
@@ -254,7 +254,7 @@ void draw_container(const Container& g, Scene& scene, GraphicsBuffer* screen, Gr
  */
 bool check_parent_loop(Scene& scene, const Container& container)
 {
-	Container* parent = nullptr;
+	const Container* parent = nullptr;
 	const Container* g = &container;
 	int count = 0;
 	parent = parent_container(scene, g);
@@ -279,10 +279,10 @@ bool check_parent_loop(Scene& scene, const Container& container)
 	return false;
 }
 
-int clip_container_to_parents(Scene& scene, const Container& container, Area& draw)
+int clip_container_to_parents(const Scene& scene, const Container& container, Area& draw)
 {
 	draw = container.area;
-	Container* parent = parent_container(scene, &container);
+	const Container* parent = parent_container(scene, &container);
 	int res = CLIP_IN;
 	while (parent)
 	{
@@ -457,6 +457,36 @@ Region Region::subtract_region_from_rect(const Area& area) const
 	return Region();
 }
 
+#define CONCEPT3
+#ifdef CONCEPT3
+struct Piece {
+	unsigned cid;
+	unsigned aid;
+	Area  screen_unclipped;
+	Area  screen;
+	Area  asset_area;
+};
+bool piece_from_container(const Scene& scene, const Container& container, Piece& piece) {
+	//Piece piece;
+	piece.cid = container.id;
+	piece.aid = container.asset_id;
+	piece.screen_unclipped = container.area;
+	piece.screen = container.area;
+	piece.asset_area = scene.assets[piece.aid].image->dims;
+	// WRONG need to modify screen and asset_area according to the actual drawn part of
+	// the container.
+	return CLIP_OUT != clip_area_to_heirarchy(scene, container, piece.screen, piece.screen_unclipped);
+}
+typedef vector<Piece> Pieces;
+void pieces_from_scene(const Scene& scene, Pieces& pieces) {
+	for (auto container : scene.containers) {
+		Piece piece;
+		if (piece_from_container(scene, container, piece)) {
+			pieces.push_back(piece);
+		}
+	}
+}
+#endif
 void draw_scene2(Scene& scene, GraphicsEngine* engine)
 {
 	cout << "Drawing2" << endl;
@@ -505,7 +535,6 @@ void draw_scene2(Scene& scene, GraphicsEngine* engine)
 		the correct image in that area. Use the Edge Table to determine these blocks.
 		Parallelism may result from having a producer which computes the blocks and a consumer which renders the blocks.
 	*/
-#define CONCEPT2
 #ifdef CONCEPT1
 	Region painted;
 	// int number_line(int low_limit, int size_limit, int low, int size, int* draw_low, int* draw_size);
@@ -530,11 +559,43 @@ void draw_scene2(Scene& scene, GraphicsEngine* engine)
 	}
 #elif defined(CONCEPT2)
 	vector<Container> transformed_containers;
-	std::transform(scene.containers.begin(), scene.containers.end(), back_inserter(transformed_containers),[scene](const Container& c) {
+	std::transform(scene.containers.begin(), scene.containers.end(), back_inserter(transformed_containers),[&scene](const Container& c) {
+		//clip_area_to_heirarchy(scene, container, draw, screen);
+		//clip_area_to_heirarchy(scene, c, draw, screen);
+		#if 1
+		Area draw;
+		Area screen;
+		const Container& container = c;
+		Container r = c;
+		draw.x += container.area.x;
+		draw.y += container.area.y;
+		screen = draw;
+		Container* parent = parent_container(scene, &container);
+		int res = CLIP_IN;
+		while (parent)
+		{
+			draw.x += parent->area.x;
+			draw.y += parent->area.y;
+			screen.x += parent->area.x;
+			screen.y += parent->area.y;
+			res = clip_area_to_area(parent->area, draw, draw);
+			if (res == CLIP_OUT)
+			{
+				r.area = draw;
+				return r;
+			}
+			parent = parent_container(scene, parent);
+		}
+		//return draw;
+		r.area = draw;
+		return r;
+		//return res;
+		#else
 		Container r = c;
 		int x=0; int y=0;
 		const Container* parent = c.parent_id?&scene.containers[c.parent_id]:nullptr;
 		while (parent) {
+			clip_area_to_area(parent->area, c.area, r.area);
 			x+=parent->area.x;
 			y+=parent->area.y;
 			parent = parent->parent_id?&scene.containers[parent->parent_id]:nullptr;
@@ -543,6 +604,7 @@ void draw_scene2(Scene& scene, GraphicsEngine* engine)
 		r.area.y += y;
 		r.parent_id = 0;
 		return r;
+		#endif
 	});
 	vector<unsigned> ordered_containers;
 	cout << "scene containers " << scene.containers.size() << endl;
@@ -577,6 +639,8 @@ void draw_scene2(Scene& scene, GraphicsEngine* engine)
 		}
 		break;
 	}
+#elif defined(CONCEPT3)
+
 #endif
 }
 

@@ -1,8 +1,10 @@
 #ifndef INCLUDED_GEOMETRY_H
 #define INCLUDED_GEOMETRY_H
+struct RectSize;
 struct Area {
 	Area() : x(), y(), width(), height() {}
 	Area(int x, int y, int width, int height) : x(x), y(y), width(width), height(height) {}
+	Area(const RectSize& size);
 	int x; int y; int width; int height;
 };
 inline bool bottom(const Area& a) {
@@ -24,4 +26,7 @@ struct RectSize {
 	int width; int height;
 };
 
+inline Area::Area(const RectSize& size) {
+	x = 0; y = 0; width = size.width; height = size.height;
+}
 #endif
