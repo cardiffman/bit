@@ -8,6 +8,7 @@
 #include "scene.h"
 #include "engine.h"
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <list>
 #include "read_JPEG_file.h"
@@ -68,6 +69,7 @@ std::wstring utf8tows(const std::string& input)
 	}
 	return ws;
 }
+#ifdef USE_JSMN
 void SceneBuilder::parse_text(Container& c, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
 	if (ptokens->type == JSMN_STRING)
@@ -123,6 +125,8 @@ void SceneBuilder::parse_text(Container& c, const std::string& text, std::vector
 		cout << "parse_text " << ptokens->type << " is not handled here" << endl;
 	}
 }
+#endif
+#ifdef USE_JSMN
 void SceneBuilder::parse_font(Container& c, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
 	auto t = text.substr(ptokens->start, ptokens->end-ptokens->start);
@@ -130,6 +134,8 @@ void SceneBuilder::parse_font(Container& c, const std::string& text, std::vector
 	font_by_id[++asset_id] = t;
 	cout << "font: " << font_by_id[asset_id] << " " << asset_id << " " << t << endl;
 }
+#endif
+#ifdef USE_JSMN
 void SceneBuilder::parse_asset_label(unsigned& id, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
 	// File supplies a label. We define the ID here and map the label to the ID.
@@ -170,6 +176,8 @@ void SceneBuilder::parse_asset_label(unsigned& id, const std::string& text, std:
 		throw "asset label has to be string";
 	}
 }
+#endif
+#ifdef USE_JSMN
 void SceneBuilder::parse_color(unsigned& color, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
 	if (ptokens->type == JSMN_ARRAY)
@@ -199,6 +207,8 @@ void SceneBuilder::parse_color(unsigned& color, const std::string& text, std::ve
 		throw "color components must be array";
 	}
 }
+#endif
+#ifdef USE_JSMN
 void SceneBuilder::parse_area(Area& area, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
 	if (ptokens->type == JSMN_OBJECT)
@@ -229,6 +239,8 @@ void SceneBuilder::parse_area(Area& area, const std::string& text, std::vector<j
 		throw "area components must be an object";
 	}
 }
+#endif
+#ifdef USE_JSMN
 void SceneBuilder::container_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens, int parent)
 {
 	if (ptokens->type == JSMN_OBJECT)
@@ -316,6 +328,8 @@ void SceneBuilder::container_read(const std::string& text, std::vector<jsmntok_t
 		cout << "Containers: " << nc.size() << endl;
 	}
 }
+#endif
+#ifdef USE_JSMN
 void SceneBuilder::asset_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
 	if (ptokens->type == JSMN_OBJECT)
@@ -354,6 +368,8 @@ void SceneBuilder::asset_read(const std::string& text, std::vector<jsmntok_t>::i
 		urls_by_id[a.id] = url;
 	}
 }
+#endif
+#ifdef USE_JSMN
 void walk_unused_value(std::vector<jsmntok_t>::iterator& ptokens)
 {
 	if (ptokens->type == JSMN_OBJECT)
@@ -385,6 +401,8 @@ void walk_unused_value(std::vector<jsmntok_t>::iterator& ptokens)
 		++ptokens;
 	}
 }
+#endif
+#ifdef USE_JSMN
 void SceneBuilder::user_input_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
 	if (ptokens->type == JSMN_OBJECT)
@@ -436,7 +454,9 @@ void SceneBuilder::user_input_read(const std::string& text, std::vector<jsmntok_
 		userInputs.push_back(u);
 	}
 }
+#endif
 
+#ifdef USE_JSMN
 SceneBuilder::Parameter SceneBuilder::parse_parameter(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
 	if (ptokens->type != JSMN_OBJECT)
@@ -481,7 +501,9 @@ SceneBuilder::Parameter SceneBuilder::parse_parameter(const std::string& text, s
 		return r;
 	}
 }
+#endif
 
+#ifdef USE_JSMN
 void SceneBuilder::animation_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
 	if (ptokens->type == JSMN_OBJECT)
@@ -563,6 +585,9 @@ void SceneBuilder::animation_read(const std::string& text, std::vector<jsmntok_t
 		animations.push_back(a);
 	}
 }
+#endif
+
+#ifdef USE_JSMN
 void SceneBuilder::scene_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens)
 {
 	if (ptokens->type == JSMN_OBJECT)
@@ -653,6 +678,8 @@ void SceneBuilder::scene_read(const std::string& text, std::vector<jsmntok_t>::i
 		}
 	}
 }
+#endif
+
 void SceneBuilder::print_scene()
 {
 	for (auto c : nc)
@@ -672,6 +699,7 @@ bool SceneBuilder::by_id(const Container& a, const Container& b)
 }
 void SceneBuilder::parse_containers_from_string(const char* text, GraphicsEngine* engine)
 {
+	#ifdef USE_JSMN
 	std::vector<jsmntok_t> tokens;
 	std::string jstext = text;
 	tokenize_json_text(tokens, jstext);
@@ -703,6 +731,7 @@ void SceneBuilder::parse_containers_from_string(const char* text, GraphicsEngine
 			read_png_file(u.second.c_str(), engine, na[u.first].image);
 		}
 	}
+	#endif
 	print_scene();
 }
 #if 0
@@ -912,8 +941,37 @@ void SceneBuilder::prepare_text(GraphicsEngine* engine)
 	}
 }
 
+void SceneBuilder::parse_asset_label(Json::Value c, unsigned& asset_ref)
+{
+	auto asset_label = c["asset"].asString();
+	Asset a;
+	if (asset_label.find(".png")!=std::string::npos || asset_label.find(".jpeg")!=std::string::npos || asset_label.find(".jpg")!=std::string::npos)
+	{
+		++asset_id;
+		//cout << "Unlabeled asset " << asset_label << " asset id " << asset_id << endl;
+		a.id = asset_id;
+		na.push_back(a);
+		named_a[asset_label] = a;
+		auto url = asset_label;
+		urls_by_id[a.id] = url;
+		return;
+	}
+	if (named_a.count(asset_label))
+	{
+		a = named_a[asset_label];
+	}
+	else
+	{
+		++asset_id;
+		a.id = asset_id;
+		na.push_back(a);
+		named_a[asset_label] = a;
+	}
+	asset_ref = a.id;
+}
 void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 {
+#ifdef USE_JSMN
 	std::vector<jsmntok_t> tokens;
 	std::string jstext;
 	if (!tokenize_json(file, tokens, jstext))
@@ -926,6 +984,116 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 	cout << "Scene" << endl;
 	scene_read(&jstext[0], ptokens);
 	cout << "Thats it" << endl;
+#endif
+#ifdef USE_JSONCPP
+	cout << __FUNCTION__ << endl;
+
+	Json::Value root;
+	std::ifstream ifs;
+	ifs.open(file);
+
+	Json::CharReaderBuilder builder;
+	builder["collectComments"] = true;
+	JSONCPP_STRING errs;
+	if (!parseFromStream(builder, ifs, &root, &errs)) {
+		std::cout << errs << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	for (auto a : root["assets"]) {
+		Asset asset = {0}; asset.id = 0; std::string url;
+		if (a.isMember("label")) {
+			auto label = a["label"].asString();
+			if (!named_a.count(label))
+			{
+				asset.id = ++asset_id;
+				na.push_back(asset);
+				named_a[label] = asset;
+			}
+			else
+			{
+				asset = named_a[label];
+			}
+		}
+		if (a.isMember("url")) {
+			url = a["url"].asString();
+		}
+		urls_by_id[asset.id] = url;
+	}
+	std::vector<std::pair<Json::Value,int>> work;
+	for (auto c : root["containers"]) {
+		work.push_back(std::make_pair(c,0));
+	}
+	int id = 1;
+	//int asset_id = 0;
+	std::map<std::string,int> ids;
+	//int parent = 0;
+	while (work.size()) {
+		//auto pc = work.back(); work.pop_back();
+		auto pc = work.front(); work.erase(work.begin());//work.pop_front();
+		Json::Value c = pc.first;
+		int parent = pc.second;
+		Container out;
+		out.asset_id = 0;
+		out.id = id++;
+		out.parent_id = pc.second;
+		if (c.isMember("label")) {
+			 ids[c["label"].asString()] = out.id;
+		}
+		if (c.isMember("area")) {
+			out.area.x = c["area"]["x"].asInt(); out.area.y = c["area"]["y"].asInt(); out.area.width= c["area"]["width"].asInt(); out.area.height =c["area"]["height"].asInt();
+		}
+		if (c.isMember("fill")) {
+			auto comps = c["fill"];
+			out.color = ((comps[0].asInt()*256+comps[1].asInt())*256+comps[2].asInt())*256+comps[3].asInt();
+		} else {
+			out.color = 0;//0xFF0000FF;
+		}
+		if (c.isMember("text")) {
+			/*
+		Text tt; tt.text = t;
+		text_by_id[++asset_id] = tt;
+		cout << "text: " << text_by_id[asset_id].text << " " << asset_id << " " << tt.text << endl;
+		Asset a;
+		a.id = asset_id;
+		na.push_back(a);
+		c.asset_id = asset_id;
+			*/
+			Text tt;
+			auto jt = c["text"];
+			if (jt.isString()) {
+				cout << "Incoming string asset " << jt << endl;
+				tt.text = jt.asString();
+			} else if (jt.isObject()) {
+				cout << "Incoming text asset " << jt << endl;
+				tt.font = jt["font"].asString();
+				tt.text = jt["string"].asString();
+				tt.size = jt["size"].asInt();
+			}
+			cout << "Resulting text asset " << tt.font << ' ' << tt.size << ' ' << tt.text << endl;
+			text_by_id[++asset_id] = tt;
+			Asset ta;
+			ta.id = out.asset_id;
+			ta.image = nullptr;
+			na.push_back(ta);
+			out.asset_id = asset_id;
+		}
+		if (c.isMember("asset")) {
+			parse_asset_label(c, out.asset_id);
+			cout <<"Asset for container " << out.id << " asset " << out.asset_id << endl;
+		}
+		//out.asset_id = 0;
+		out.children = 0;
+		
+		nc.push_back(out);
+		if (c.isMember("containers")) {
+			for (auto cc : c["containers"]) {
+				work.push_back(std::make_pair(cc,id-1));
+			}
+		}
+	}
+	std::sort(nc.begin(), nc.end(), by_id);
+	//std::cout << root << std::endl;
+#endif
 	nc.insert(nc.begin(), Container());
 	std::sort(nc.begin(), nc.end(), by_id);
 	for (auto& g : nc) {

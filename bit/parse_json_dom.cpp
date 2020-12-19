@@ -7,7 +7,9 @@
 
 #include "parse_json_dom.h"
 
+#ifdef USE_JSMN
 #include "jsmn.h"
+#endif
 
 #include <vector>
 #include <string>
@@ -66,6 +68,7 @@ void print_object(JSValue* obj)
 	cout << obj->to_string() << endl;
 }
 
+#ifdef USE_JSMN
 JSValue* jsread(const char* jstext, std::vector<jsmntok_t>::iterator& ptoken)
 {
 	JSArray* array;
@@ -123,6 +126,9 @@ JSValue* jsread(const char* jstext, std::vector<jsmntok_t>::iterator& ptoken)
 	}
 	return new JSNull();
 }
+#endif
+
+#ifdef USE_JSMN
 JSValue* parse_json(const char* file)
 {
 	std::vector<jsmntok_t> tokens;
@@ -135,6 +141,4 @@ JSValue* parse_json(const char* file)
 	print_object(root);
 	return root;
 }
-
-
-
+#endif

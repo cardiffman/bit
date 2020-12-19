@@ -52,3 +52,6 @@ endif()
 if (CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
 add_subdirectory(win64)
 endif()
+
+add_subdirectory(jsoncpp)
+

@@ -12,7 +12,13 @@
 #include <map>
 #include <string>
 
+#ifdef USE_JSMN
 #include "jsmn.h"
+#endif
+
+#ifdef USE_JSONCPP
+#include "json/json.h"
+#endif
 
 #include "scene.h"
 
@@ -51,6 +57,7 @@ struct SceneBuilder
 	void parse_containers(const char* file, GraphicsEngine* engine);
 	void parse_containers_from_string(const char* text, GraphicsEngine* engine);
 private:
+#ifdef USE_JSMN
 	void parse_asset_label(unsigned& id, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void parse_color(unsigned& color, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void parse_area(Area& area, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
@@ -59,11 +66,17 @@ private:
 	void scene_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void container_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens, int parent);
 	void asset_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
+#endif
 	void print_scene();
 	static bool by_id(const Container& a, const Container& b);
+#ifdef USE_JSONCPP
+	void parse_asset_label(Json::Value c, unsigned& asset_id);
+#endif
+#ifdef USE_JSMN
 	void user_input_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	void animation_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	Parameter parse_parameter(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
+#endif
 	void prepare_text(GraphicsEngine* engine);
 };
 

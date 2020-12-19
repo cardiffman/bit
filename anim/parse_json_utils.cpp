@@ -16,6 +16,7 @@
 using std::cout;
 using std::endl;
 
+#ifdef USE_JSMN
 bool tokenize_json(const char* file, std::vector<jsmntok_t>& tokens, std::string& jstext)
 {
 	jsmn_parser jp;
@@ -93,6 +94,4 @@ void dump_jstokens(const std::vector<jsmntok_t>& tokens, const std::string& jste
 		}
 	}
 }
-
-
-
+#endif
