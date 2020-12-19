@@ -133,10 +133,6 @@ int main(int argc, char** argv)
 	win->repaint();
 
 
-	while (true)
-	{
-		if (!XCBWindow::pollEvents())
-			break;
-	}
+	XCBWindow::eventLoop();
 	return 0;
 }
