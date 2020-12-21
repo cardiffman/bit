@@ -41,7 +41,9 @@ endif()
 
 add_subdirectory(gtk)
 
+if (USE_JSMN)
 add_subdirectory(jsmn)
+endif()
 
 add_subdirectory(anim)
 
@@ -53,5 +55,7 @@ if (CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
 add_subdirectory(win64)
 endif()
 
+if (USE_JSONCPP)
 add_subdirectory(jsoncpp)
+endif()
 
