@@ -45,6 +45,15 @@ if (USE_JSMN)
 add_subdirectory(jsmn)
 endif()
 
+if (USE_JSONCPP)
+add_subdirectory(jsoncpp)
+endif()
+
+if (NOT USE_JSMN AND NOT USE_JSONCPP)
+message(STATUS "Using CMJSON")
+add_subdirectory(cmjson)
+endif()
+
 add_subdirectory(anim)
 
 if (NOT CMAKE_SYSTEM_NAME STREQUAL "Windows")
@@ -53,9 +62,5 @@ endif()
 
 if (CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
 add_subdirectory(win64)
-endif()
-
-if (USE_JSONCPP)
-add_subdirectory(jsoncpp)
 endif()
 

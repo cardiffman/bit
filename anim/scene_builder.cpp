@@ -5,6 +5,9 @@
  *      Author: menright
  */
 #include "scene_builder.h"
+#if not defined(USE_JSMN) && not defined(USE_JSONCPP)
+#include "JSValue.h"
+#endif
 #include "scene.h"
 #include "engine.h"
 #include <iostream>
@@ -18,6 +21,11 @@
 #include <algorithm>
 #include <stdlib.h>
 #include "ft2build.h"
+
+#if not defined(USE_JSMN) && not defined(USE_JSONCPP)
+#include "parse_json_dom.h"
+#endif
+
 #include FT_FREETYPE_H
 
 using std::cout;
@@ -711,6 +719,25 @@ void SceneBuilder::parse_containers_from_string(const char* text, GraphicsEngine
 	auto ptokens = tokens.begin();
 	cout << "Scene" << endl;
 	scene_read(&jstext[0], ptokens);
+	#endif
+	#if defined(USE_JSONCPP)
+	Json::Value root;
+	Json::CharReaderBuilder builder;
+	Json::CharReader* reader = builder.newCharReader();
+	std::string errtext;
+	if (!reader->parse(text, text+strlen(text), &root, &errtext))
+	{
+		std::cerr << errtext << endl;
+		exit(1);
+	}
+	parse(engine, root);
+	#elif defined(USE_JSMN)
+	//Json::Value root = parse_json(text, text+strlen(text));
+	//parse(engine, root);
+	#else
+	JSValue root = parse_json(text, text+strlen(text));
+	parse(engine, root);
+	#endif
 	cout << "Thats it" << endl;
 	nc.insert(nc.begin(), Container());
 	std::sort(nc.begin(), nc.end(), by_id);
@@ -733,7 +760,6 @@ void SceneBuilder::parse_containers_from_string(const char* text, GraphicsEngine
 			read_png_file(u.second.c_str(), engine, na[u.first].image);
 		}
 	}
-	#endif
 	print_scene();
 }
 #if 0
@@ -952,6 +978,7 @@ void SceneBuilder::prepare_text(GraphicsEngine* engine)
 	}
 }
 
+#ifdef USE_JSONCPP
 void SceneBuilder::parse_asset_label(Json::Value c, unsigned& asset_ref)
 {
 	auto asset_label = c["asset"].asString();
@@ -980,36 +1007,10 @@ void SceneBuilder::parse_asset_label(Json::Value c, unsigned& asset_ref)
 	}
 	asset_ref = a.id;
 }
-void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
-{
-#ifdef USE_JSMN
-	std::vector<jsmntok_t> tokens;
-	std::string jstext;
-	if (!tokenize_json(file, tokens, jstext))
-	{
-		throw std::runtime_error("tokenizing failed");
-	}
-	cout << "js: chars provided " << jstext.size() << endl;
-	//dump_jstokens(tokens, jstext);
-	auto ptokens = tokens.begin();
-	cout << "Scene" << endl;
-	scene_read(&jstext[0], ptokens);
-	cout << "Thats it" << endl;
 #endif
 #ifdef USE_JSONCPP
-	cout << __FUNCTION__ << endl;
-
-	Json::Value root;
-	std::ifstream ifs;
-	ifs.open(file);
-
-	Json::CharReaderBuilder builder;
-	builder["collectComments"] = true;
-	JSONCPP_STRING errs;
-	if (!parseFromStream(builder, ifs, &root, &errs)) {
-		std::cout << errs << std::endl;
-		exit(EXIT_FAILURE);
-	}
+void SceneBuilder::parse(GraphicsEngine* engine, Json::Value root)
+{
 	for (auto a : root["assets"]) {
 		Asset asset = {0}; asset.id = 0; std::string url;
 		if (a.isMember("label")) {
@@ -1055,7 +1056,12 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 		}
 		if (c.isMember("fill")) {
 			auto comps = c["fill"];
-			out.color = ((comps[0].asInt()*256+comps[1].asInt())*256+comps[2].asInt())*256+comps[3].asInt();
+			if (comps.size() == 4)
+				out.color = ((comps[0].asInt()*256+comps[1].asInt())*256+comps[2].asInt())*256+comps[3].asInt();
+			else if (comps.size() == 3)
+				out.color = 0xff000000 + (comps[0].asInt()*256+comps[1].asInt())*256+comps[2].asInt();
+			else
+				throw "colors must have 3 or 4 components";
 		} else {
 			out.color = 0;//0xFF0000FF;
 		}
@@ -1103,6 +1109,171 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 		}
 	}
 	std::sort(nc.begin(), nc.end(), by_id);
+}
+#endif
+#if !defined(USE_JSONCPP) && !defined(USE_JSMN)
+void SceneBuilder::parse_asset_label(JSValue c, unsigned& asset_ref)
+{
+	auto asset_label = c["asset"].asString();
+	Asset a;
+	if (asset_label.find(".png")!=std::string::npos || asset_label.find(".jpeg")!=std::string::npos || asset_label.find(".jpg")!=std::string::npos)
+	{
+		++asset_id;
+		//cout << "Unlabeled asset " << asset_label << " asset id " << asset_id << endl;
+		a.id = asset_id;
+		na.push_back(a);
+		named_a[asset_label] = a;
+		auto url = asset_label;
+		urls_by_id[a.id] = url;
+		return;
+	}
+	if (named_a.count(asset_label))
+	{
+		a = named_a[asset_label];
+	}
+	else
+	{
+		++asset_id;
+		a.id = asset_id;
+		na.push_back(a);
+		named_a[asset_label] = a;
+	}
+	asset_ref = a.id;
+}
+void SceneBuilder::parse(GraphicsEngine* engine, JSValue root)
+{
+	for (auto a : root["assets"]) {
+		Asset asset = {0}; asset.id = 0; std::string url;
+		if (a.isMember("label")) {
+			auto label = a["label"].asString();
+			if (!named_a.count(label))
+			{
+				asset.id = ++asset_id;
+				na.push_back(asset);
+				named_a[label] = asset;
+			}
+			else
+			{
+				asset = named_a[label];
+			}
+		}
+		if (a.isMember("url")) {
+			url = a["url"].asString();
+		}
+		urls_by_id[asset.id] = url;
+	}
+	std::vector<std::pair<JSValue,int>> work;
+	for (auto c : root["containers"]) {
+		work.push_back(std::make_pair(c,0));
+	}
+	int id = 1;
+	//int asset_id = 0;
+	std::map<std::string,int> ids;
+	//int parent = 0;
+	while (work.size()) {
+		//auto pc = work.back(); work.pop_back();
+		auto pc = work.front(); work.erase(work.begin());//work.pop_front();
+		JSValue c = pc.first;
+		int parent = pc.second;
+		Container out;
+		out.asset_id = 0;
+		out.id = id++;
+		out.parent_id = pc.second;
+		if (c.isMember("label")) {
+			 ids[c["label"].asString()] = out.id;
+		}
+		if (c.isMember("area")) {
+			out.area.x = c["area"]["x"].asInt(); out.area.y = c["area"]["y"].asInt(); out.area.width= c["area"]["width"].asInt(); out.area.height =c["area"]["height"].asInt();
+		}
+		if (c.isMember("fill")) {
+			auto comps = c["fill"];
+			if (comps.size() == 4)
+				out.color = ((comps[0].asInt()*256+comps[1].asInt())*256+comps[2].asInt())*256+comps[3].asInt();
+			else if (comps.size() == 3)
+				out.color = 0xff000000 + (comps[0].asInt()*256+comps[1].asInt())*256+comps[2].asInt();
+			else
+				throw "colors must have 3 or 4 components";
+		} else {
+			out.color = 0;//0xFF0000FF;
+		}
+		if (c.isMember("text")) {
+			/*
+		Text tt; tt.text = t;
+		text_by_id[++asset_id] = tt;
+		cout << "text: " << text_by_id[asset_id].text << " " << asset_id << " " << tt.text << endl;
+		Asset a;
+		a.id = asset_id;
+		na.push_back(a);
+		c.asset_id = asset_id;
+			*/
+			Text tt;
+			auto jt = c["text"];
+			if (jt.isString()) {
+				cout << "Incoming string asset " << jt << endl;
+				tt.text = jt.asString();
+			} else if (jt.isObject()) {
+				cout << "Incoming text asset " << jt << endl;
+				tt.font = jt["font"].asString();
+				tt.text = jt["string"].asString();
+				tt.size = jt["size"].asInt();
+			}
+			cout << "Resulting text asset " << tt.font << ' ' << tt.size << ' ' << tt.text << endl;
+			text_by_id[++asset_id] = tt;
+			Asset ta;
+			ta.id = out.asset_id;
+			ta.image = nullptr;
+			na.push_back(ta);
+			out.asset_id = asset_id;
+		}
+		if (c.isMember("asset")) {
+			parse_asset_label(c, out.asset_id);
+			cout <<"Asset for container " << out.id << " asset " << out.asset_id << endl;
+		}
+		//out.asset_id = 0;
+		out.children = 0;
+		
+		nc.push_back(out);
+		if (c.isMember("containers")) {
+			for (auto cc : c["containers"]) {
+				work.push_back(std::make_pair(cc,id-1));
+			}
+		}
+	}
+	std::sort(nc.begin(), nc.end(), by_id);
+}
+#endif
+void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
+{
+#ifdef USE_JSMN
+	cout << __FUNCTION__ << " Using JSMN" << endl;
+	std::vector<jsmntok_t> tokens;
+	std::string jstext;
+	if (!tokenize_json(file, tokens, jstext))
+	{
+		throw std::runtime_error("tokenizing failed");
+	}
+	cout << "js: chars provided " << jstext.size() << endl;
+	//dump_jstokens(tokens, jstext);
+	auto ptokens = tokens.begin();
+	cout << "Scene" << endl;
+	scene_read(&jstext[0], ptokens);
+	cout << "Thats it" << endl;
+#endif
+#ifdef USE_JSONCPP
+	cout << __FUNCTION__ << endl;
+
+	Json::Value root;
+	std::ifstream ifs;
+	ifs.open(file);
+
+	Json::CharReaderBuilder builder;
+	builder["collectComments"] = true;
+	JSONCPP_STRING errs;
+	if (!parseFromStream(builder, ifs, &root, &errs)) {
+		std::cout << errs << std::endl;
+		exit(EXIT_FAILURE);
+	}
+	parse(engine, root);
 	//std::cout << root << std::endl;
 #endif
 	nc.insert(nc.begin(), Container());
@@ -1118,10 +1289,11 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 	//print_scene();
 	for (auto u : urls_by_id)
 	{
-		if (u.second.find(".jpg")!=-1)
+		if (u.second.rfind(".jpg")!=-1 || u.second.rfind(".jpeg") != -1)
 		{
 			read_JPEG_file(u.second.c_str(), engine, na[u.first].image);
-		} else if (u.second.find(".png")!=-1)
+		}
+		else if (u.second.find(".png")!=-1)
 		{
 			read_png_file(u.second.c_str(), engine, na[u.first].image);
 		}

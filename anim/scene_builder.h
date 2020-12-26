@@ -20,6 +20,11 @@
 #include "json/json.h"
 #endif
 
+#if !defined(USE_JSONCPP) && !defined(USE_JSMN)
+//#include "parse_json_dom.h"
+#include "JSValue.h"
+#endif
+
 #include "scene.h"
 
 struct GraphicsEngine;
@@ -77,7 +82,15 @@ private:
 	void animation_read(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 	Parameter parse_parameter(const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);
 #endif
+#if !defined(USE_JSONCPP) && !defined(USE_JSMN)
+	void parse(GraphicsEngine* engine, JSValue root);
+	void parse_asset_label(JSValue c, unsigned& asset_id);
+#endif
+
 	void prepare_text(GraphicsEngine* engine);
+#ifdef USE_JSONCPP
+	void parse(GraphicsEngine* engine, Json::Value root);
+#endif
 };
 
 #endif /* BIT_SCENE_BUILDER_H_ */

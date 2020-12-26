@@ -13,8 +13,6 @@ add_executable(bit
 	bitwindow.cpp
 	)
 
-add_executable(jstest jstest.cpp parse_json_dom.cpp)
-
 message(STATUS "XCB_LIBRARIES ${XCB_LIBRARIES}")
 message(STATUS "xcb_LIBRARIES ${xcb_LIBRARIES}")
 message(STATUS "XCBWINDOW_LIBRARIES ${XCBWINDOW_LIBRARIES}")
@@ -27,6 +25,13 @@ set(BIT_LINK_DIRS anim xcbwindow ${KS_LIBRARIES} ${XCB_LIBRARIES} ${PNG_LIBRARIE
 if (USE_JSMN)
 	#list(append BIT_INCLUDE_DIRS ../jsmn)
 	list(APPEND BIT_LINK_LIBS jsmn)
+	target_compile_definitions(bit PRIVATE USE_JSMN=1)
+endif()
+
+if (NOT USE_JSMN AND NOT USE_JSONCPP)
+	message(STATUS "Adding cmjson library")
+	list(APPEND BIT_INCLUDE_DIRS ../cmjson)
+	list(APPEND BIT_LINK_LIBS cmjson)
 endif()
 target_link_libraries(bit ${BIT_LINK_DIRS})
 target_include_directories(bit PUBLIC ${BIT_INCLUDE_DIRS})
@@ -38,4 +43,11 @@ add_executable(shmtrial
 	)
 target_include_directories(shmtrial PUBLIC ${BIT_INCLUDE_DIRS})
 target_link_libraries(shmtrial ${BIT_LINK_DIRS} ${XCB_SHM_LIBRARIES})
+
+if (NOT USE_JSMN AND NOT USE_JSONCPP)
+add_executable(jstest jstest.cpp)
+target_include_directories(jstest PRIVATE ${BIT_INCLUDE_DIRS})
+target_link_libraries(jstest cmjson)
+endif()
+
 endif()
