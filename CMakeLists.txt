@@ -64,3 +64,22 @@ if (CMAKE_SYSTEM_NAME STREQUAL "CYGWIN")
 add_subdirectory(win64)
 endif()
 
+### This crap is needlessly difficult. 
+### First make the lists and then use them with FILES.
+### dont use wildcards directly: FILE NOT FOUND.
+### dont use DIRECTORY/FILES_MATCHING: Can't specify DESTINATION.
+FILE(GLOB GFX_FILES1 CONFIGURE_DEPENDS res/Lesson1/*.bmp)
+FILE(GLOB GFX_FILES2 CONFIGURE_DEPENDS res/Lesson2/*.bmp)
+FILE(GLOB GFX_FILES3 CONFIGURE_DEPENDS res/Lesson3/*.bmp res/Lesson3/*.png)
+FILE(GLOB GFX_FILES4 CONFIGURE_DEPENDS res/Lesson4/*.bmp res/Lesson4/*.png)
+FILE(GLOB GFX_FILES5 CONFIGURE_DEPENDS res/Lesson5/*.bmp res/Lesson5/*.png res/Lesson5/*.jpg)
+FILE(GLOB GFX_FILES6 CONFIGURE_DEPENDS res/Lesson6/*.bmp res/Lesson6/*.png res/Lesson6/*.jpg res/Lesson6/*.ttf)
+message(STATUS "The gfx files are [${GFX_FILES1} ${GFX_FILES2} ${GFX_FILES3} ${GFX_FILES4} ${GFX_FILES5} ${GFX_FILES6}")
+#install(FILES ${GFX_FILES1} ${GFX_FILES2} ${GFX_FILES3} ${GFX_FILES4} ${GFX_FILES5} ${GFX_FILES6} DESTINATION res)
+install(FILES ${GFX_FILES1} DESTINATION res/Lesson1)
+install(FILES ${GFX_FILES2} DESTINATION res/Lesson2)
+install(FILES ${GFX_FILES3} DESTINATION res/Lesson3)
+install(FILES ${GFX_FILES4} DESTINATION res/Lesson4)
+install(FILES ${GFX_FILES5} DESTINATION res/Lesson5)
+install(FILES ${GFX_FILES6} DESTINATION res/Lesson6)
+

@@ -707,7 +707,7 @@ bool SceneBuilder::by_id(const Container& a, const Container& b)
 {
 	return a.id < b.id;
 }
-void SceneBuilder::parse_containers_from_string(const char* text, GraphicsEngine* engine)
+void SceneBuilder::parse_containers_from_string(const char* path, const char* text, GraphicsEngine* engine)
 {
 	#ifdef USE_JSMN
 	std::vector<jsmntok_t> tokens;
@@ -754,10 +754,14 @@ void SceneBuilder::parse_containers_from_string(const char* text, GraphicsEngine
 	{
 		if (u.second.find(".jpg")!=-1)
 		{
-			read_JPEG_file(u.second.c_str(), engine, na[u.first].image);
+			cout << "A jpeg file :" << u.second << endl;
+			std::string loc = path+u.second;
+			read_JPEG_file(loc.c_str(), engine, na[u.first].image);
 		} else if (u.second.find(".png")!=-1)
 		{
-			read_png_file(u.second.c_str(), engine, na[u.first].image);
+			cout << "A png file :" << u.second << endl;
+			std::string loc = path+u.second;
+			read_png_file(loc.c_str(), engine, na[u.first].image);
 		}
 	}
 	print_scene();
@@ -1288,7 +1292,7 @@ void SceneBuilder::parse(GraphicsEngine* engine, JSValue root)
 	std::sort(nc.begin(), nc.end(), by_id);
 }
 #endif
-void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
+void SceneBuilder::parse_containers(const char* path, const char* file, GraphicsEngine* engine)
 {
 #ifdef USE_JSMN
 	cout << __FUNCTION__ << " Using JSMN" << endl;
@@ -1337,11 +1341,13 @@ void SceneBuilder::parse_containers(const char* file, GraphicsEngine* engine)
 	{
 		if (u.second.rfind(".jpg")!=-1 || u.second.rfind(".jpeg") != -1)
 		{
-			read_JPEG_file(u.second.c_str(), engine, na[u.first].image);
+			std::string loc = path + u.second;
+			read_JPEG_file(loc.c_str(), engine, na[u.first].image);
 		}
 		else if (u.second.find(".png")!=-1)
 		{
-			read_png_file(u.second.c_str(), engine, na[u.first].image);
+			std::string loc = path + u.second;
+			read_png_file(loc.c_str(), engine, na[u.first].image);
 		}
 	}
 	prepare_text(engine);

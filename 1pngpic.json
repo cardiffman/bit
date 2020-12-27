@@ -11,7 +11,7 @@
 		}
 	],
 	"assets": [
-	{"label": "picture1", "url":"/home/micha/bit/res/Lesson5/image.png"}
+	{"label": "picture1", "url":"res/Lesson5/image.png"}
 
 		]
 }

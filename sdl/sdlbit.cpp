@@ -16,6 +16,8 @@
 #include "scene.h"
 #include "scene_builder.h"
 #include "engine.h"
+#include <cstring>
+#include <unistd.h>
 
 using std::vector;
 using std::cout;
@@ -213,6 +215,11 @@ SDL_Texture* renderText(const std::string &message, const std::string &fontFile,
 Scene scene;
 
 int main(int argc, char** argv){
+	char path[2048];
+
+	readlink("/proc/self/exe",path, sizeof(path));
+	char* sl = strrchr(path, '/');
+	sl[1] = 0;
 	//Start up SDL and make sure it went ok
 	if (SDL_Init(SDL_INIT_VIDEO) != 0){
 		logSDLError(std::cout, "SDL_Init");
@@ -235,7 +242,7 @@ int main(int argc, char** argv){
 	if (argc > 1)
 	{
 		try {
-			builder.parse_containers(argv[1], &engine);
+			builder.parse_containers(path, argv[1], &engine);
 		} catch (char const * ex) {
 			cout << "Exception " << ex << endl;
 			return 1;

@@ -21,9 +21,9 @@
 		}
 	],
 	"assets": [
-	{"label": "picture1", "url":"/home/micha/bit/res/Lesson5/image.png"},
-	{"label": "picture2", "url":"/home/micha/bit/res/Lesson3/image.png"},
-	{"label": "picture3", "url":"/home/micha/bit/res/Lesson4/image.png"}
+	{"label": "picture1", "url":"res/Lesson5/image.png"},
+	{"label": "picture2", "url":"res/Lesson3/image.png"},
+	{"label": "picture3", "url":"res/Lesson4/image.png"}
 
 		]
 }

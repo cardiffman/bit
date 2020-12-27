@@ -24,6 +24,7 @@ set(BIT_INCLUDE_DIRS ../anim ../XCB ${CMAKE_CURRENT_SOURCE_DIR}/.. ${KS_INCLUDE_
 set(BIT_LINK_DIRS anim xcbwindow ${KS_LIBRARIES} ${XCB_LIBRARIES} ${PNG_LIBRARIES} ${JPEG_LIBRARIES} ${FT_LIBRARIES})
 if (USE_JSMN)
 	#list(append BIT_INCLUDE_DIRS ../jsmn)
+	message(STATUS "Adding jsmn library")
 	list(APPEND BIT_LINK_LIBS jsmn)
 	target_compile_definitions(bit PRIVATE USE_JSMN=1)
 endif()
@@ -36,6 +37,7 @@ endif()
 target_link_libraries(bit ${BIT_LINK_DIRS})
 target_include_directories(bit PUBLIC ${BIT_INCLUDE_DIRS})
 target_compile_options(bit PUBLIC ${SDL2_CFLAGS_OTHER} ${XCB_CFLAGS_OTHER})
+install(TARGETS bit DESTINATION .)
 
 add_executable(shmtrial
 	shmtrial.cpp
@@ -43,6 +45,13 @@ add_executable(shmtrial
 	)
 target_include_directories(shmtrial PUBLIC ${BIT_INCLUDE_DIRS})
 target_link_libraries(shmtrial ${BIT_LINK_DIRS} ${XCB_SHM_LIBRARIES})
+if (USE_JSMN)
+target_compile_definitions(shmtrial PRIVATE USE_JSMN=1)
+elseif(USE_JSONCPP)
+target_compile_definitions(shmtrial PRIVATE USE_JSONCPP=1)
+else()
+endif()
+install(TARGETS shmtrial DESTINATION .)
 
 if (NOT USE_JSMN AND NOT USE_JSONCPP)
 add_executable(jstest jstest.cpp)

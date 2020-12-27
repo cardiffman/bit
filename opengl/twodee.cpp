@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include "engine.h"
 #include "scene_builder.h"
+#include <cstring>
+#include <unistd.h>
 
 using std::cout;
 using std::endl;
@@ -34,6 +36,11 @@ void render()
 }
 int main(int argc, char** argv)
 {
+	char path[2048];
+
+	readlink("/proc/self/exe",path, sizeof(path));
+	char* sl = strrchr(path, '/');
+	sl[1] = 0;
     glutInit(&argc, argv);
     glutInitContextVersion(2, 1);
     glutInitDisplayMode(GLUT_DOUBLE);
@@ -60,7 +67,7 @@ int main(int argc, char** argv)
     if (argc > 1)
     {
         try {
-            builder.parse_containers(argv[1], engine);
+            builder.parse_containers(path, argv[1], engine);
         } catch (char const * ex) {
             cout << "Exception " << ex << endl;
             return 1;

@@ -8,6 +8,8 @@
 #include "bitwindow.h"
 #include "scene_builder.h"
 #include "engine.h"
+#include <cstring>
+#include <unistd.h>
 
 #include <iostream>
 using std::cerr;
@@ -76,19 +78,19 @@ const char* base_scene =
 	      	  	"} "
 		   "]"
 		 ", \"assets\": ["
-		      "{\"label\": \"picture1\", \"url\": \"/home/micha/bit/res/Lesson5/Vice2018.jpg\"}"
-	          ",{\"label\": \"picture2\", \"url\": \"/home/micha/bit/res/Lesson5/BB_Online_Dom_Payoff_1-Sheet_H-Steinfeld_BB_Bridge_Autobot.jpg\"}"
-	          ",{\"label\": \"picture3\", \"url\": \"/home/micha/bit/res/Lesson5/GRC_Tsr1Sheet_GrinchAndMax_.jpg\"}"
-		      ",{\"label\": \"picture4\", \"url\": \"/home/micha/bit/res/Lesson5/MULE_VERT_MAIN_DOM_2764x4096_master.jpg\"}"
-		      ",{\"label\": \"picture5\", \"url\": \"/home/micha/bit/res/Lesson5/TheFavourite2018.jpg\"}"
-		      ",{\"label\": \"picture6\", \"url\": \"/home/micha/bit/res/Lesson5/SecondAct_27x40_1Sheet_RGB.jpg\"}"
-		      ",{\"label\": \"picture7\", \"url\": \"/home/micha/bit/res/Lesson5/AQAMN_VERT_MAIN_DUO_DOM_2764x4096_master.jpg\"}"
-		      ",{\"label\": \"picture8\", \"url\": \"/home/micha/bit/res/Lesson5/TSNGO_TicketingBanner_250x375_r2.jpg\"}"
-		      ",{\"label\": \"picture9\", \"url\": \"/home/micha/bit/res/Lesson5/HolmesAndWatson2018.jpg\"}"
-		      ",{\"label\": \"picture10\", \"url\": \"/home/micha/bit/res/Lesson5/SpiderManIntoTheSpiderVerse2018.jpg\"}"
-		      ",{\"label\": \"picture11\", \"url\": \"/home/micha/bit/res/Lesson5/WTM_HeroPoster.jpg\"}"
-		      ",{\"label\": \"picture12\", \"url\": \"/home/micha/bit/res/Lesson5/MQOS_OneSheet.jpg\"}"
-		      ",{\"label\": \"picture13\", \"url\": \"/home/micha/bit/res/Lesson5/MPR-Payoff_1-Sheet_v8a_Sm.jpg\"}"
+		      "{\"label\": \"picture1\", \"url\": \"res/Lesson5/Vice2018.jpg\"}"
+	          ",{\"label\": \"picture2\", \"url\": \"res/Lesson5/BB_Online_Dom_Payoff_1-Sheet_H-Steinfeld_BB_Bridge_Autobot.jpg\"}"
+	          ",{\"label\": \"picture3\", \"url\": \"res/Lesson5/GRC_Tsr1Sheet_GrinchAndMax_.jpg\"}"
+		      ",{\"label\": \"picture4\", \"url\": \"res/Lesson5/MULE_VERT_MAIN_DOM_2764x4096_master.jpg\"}"
+		      ",{\"label\": \"picture5\", \"url\": \"res/Lesson5/TheFavourite2018.jpg\"}"
+		      ",{\"label\": \"picture6\", \"url\": \"res/Lesson5/SecondAct_27x40_1Sheet_RGB.jpg\"}"
+		      ",{\"label\": \"picture7\", \"url\": \"res/Lesson5/AQAMN_VERT_MAIN_DUO_DOM_2764x4096_master.jpg\"}"
+		      ",{\"label\": \"picture8\", \"url\": \"res/Lesson5/TSNGO_TicketingBanner_250x375_r2.jpg\"}"
+		      ",{\"label\": \"picture9\", \"url\": \"res/Lesson5/HolmesAndWatson2018.jpg\"}"
+		      ",{\"label\": \"picture10\", \"url\": \"res/Lesson5/SpiderManIntoTheSpiderVerse2018.jpg\"}"
+		      ",{\"label\": \"picture11\", \"url\": \"res/Lesson5/WTM_HeroPoster.jpg\"}"
+		      ",{\"label\": \"picture12\", \"url\": \"res/Lesson5/MQOS_OneSheet.jpg\"}"
+		      ",{\"label\": \"picture13\", \"url\": \"res/Lesson5/MPR-Payoff_1-Sheet_v8a_Sm.jpg\"}"
 		   "]"
 		"}";
 
@@ -100,14 +102,19 @@ double get_time()
 }
 int main(int argc, char** argv)
 {
+	char path[2048];
+
 	GraphicsEngine* engine = init_base_engine();
 	bool testing=false;
 	int filearg = 1;
+	readlink("/proc/self/exe",path, sizeof(path));
+	char* sl = strrchr(path, '/');
+	sl[1] = 0;
 	try {
 		if (argc==1)
 		{
 			SceneBuilder builder;
-			builder.parse_containers_from_string(base_scene, engine);
+			builder.parse_containers_from_string(path, base_scene, engine);
 			scene.containers = builder.nc;
 			scene.assets = builder.na;
 			//return 0;
@@ -119,7 +126,7 @@ int main(int argc, char** argv)
 				testing = true;
 				filearg = 2;
 			}
-			builder.parse_containers(argv[filearg], engine);
+			builder.parse_containers(path, argv[filearg], engine);
 			scene.containers = builder.nc;
 			scene.assets = builder.na;
 		}

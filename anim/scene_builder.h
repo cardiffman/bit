@@ -59,8 +59,8 @@ struct SceneBuilder
 	int container_id;
 	int asset_id;
 	SceneBuilder();
-	void parse_containers(const char* file, GraphicsEngine* engine);
-	void parse_containers_from_string(const char* text, GraphicsEngine* engine);
+	void parse_containers(const char* path, const char* file, GraphicsEngine* engine);
+	void parse_containers_from_string(const char* path, const char* text, GraphicsEngine* engine);
 private:
 #ifdef USE_JSMN
 	void parse_asset_label(unsigned& id, const std::string& text, std::vector<jsmntok_t>::iterator& ptokens);

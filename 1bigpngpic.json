@@ -7,7 +7,7 @@
 		{
 			"label": "top",
 			"area": { "x":280, "y":0, "width":720,"height":720 },
-			"asset": "/home/micha/bit/res/Lesson5/image.png"
+			"asset": "res/Lesson5/image.png"
 		}
 	]
 }

@@ -36,20 +36,20 @@
 		}
 	],
 	"assets": [ 
-	{"label": "test", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/image.png"},
-	{"label": "picture1", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/Vice2018.jpg"},
-	{"label": "picture2", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/BB_Online_Dom_Payoff_1-Sheet_H-Steinfeld_BB_Bridge_Autobot.jpg"},
-	{"label": "picture3", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/GRC_Tsr1Sheet_GrinchAndMax_.jpg"},
-	{"label": "picture4", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/MULE_VERT_MAIN_DOM_2764x4096_master.jpg"},
-	{"label": "picture5", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/TheFavourite2018.jpg"},
-	{"label": "picture6", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/SecondAct_27x40_1Sheet_RGB.jpg"},
-	{"label": "picture7", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/AQAMN_VERT_MAIN_DUO_DOM_2764x4096_master.jpg"},
-	{"label": "picture8", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/TSNGO_TicketingBanner_250x375_r2.jpg"},
-	{"label": "picture9", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/HolmesAndWatson2018.jpg"},
-	{"label": "picture10", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/SpiderManIntoTheSpiderVerse2018.jpg"},
-	{"label": "picture11", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/WTM_HeroPoster.jpg"},
-	{"label": "picture12", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/MQOS_OneSheet.jpg"},
-	{"label": "picture13", "url":"c:/cygwin64/home/micha/bit/res/Lesson5/MPR-Payoff_1-Sheet_v8a_Sm.jpg"}
+	{"label": "test", "url":"res/Lesson5/image.png"},
+	{"label": "picture1", "url":"res/Lesson5/Vice2018.jpg"},
+	{"label": "picture2", "url":"res/Lesson5/BB_Online_Dom_Payoff_1-Sheet_H-Steinfeld_BB_Bridge_Autobot.jpg"},
+	{"label": "picture3", "url":"res/Lesson5/GRC_Tsr1Sheet_GrinchAndMax_.jpg"},
+	{"label": "picture4", "url":"res/Lesson5/MULE_VERT_MAIN_DOM_2764x4096_master.jpg"},
+	{"label": "picture5", "url":"res/Lesson5/TheFavourite2018.jpg"},
+	{"label": "picture6", "url":"res/Lesson5/SecondAct_27x40_1Sheet_RGB.jpg"},
+	{"label": "picture7", "url":"res/Lesson5/AQAMN_VERT_MAIN_DUO_DOM_2764x4096_master.jpg"},
+	{"label": "picture8", "url":"res/Lesson5/TSNGO_TicketingBanner_250x375_r2.jpg"},
+	{"label": "picture9", "url":"res/Lesson5/HolmesAndWatson2018.jpg"},
+	{"label": "picture10", "url":"res/Lesson5/SpiderManIntoTheSpiderVerse2018.jpg"},
+	{"label": "picture11", "url":"res/Lesson5/WTM_HeroPoster.jpg"},
+	{"label": "picture12", "url":"res/Lesson5/MQOS_OneSheet.jpg"},
+	{"label": "picture13", "url":"res/Lesson5/MPR-Payoff_1-Sheet_v8a_Sm.jpg"}
 
 		]
 }
