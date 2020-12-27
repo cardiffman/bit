@@ -9,7 +9,7 @@
 #include "engine.h"
 #include <iostream>
 #include <algorithm>
-#include <ranges>
+//#include <ranges>
 
 using std::cout;
 using std::endl;

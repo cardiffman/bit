@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.7)
 
 add_library(xcbwindow STATIC XCBWindow.cpp)
 
-set_property(TARGET xcbwindow PROPERTY CXX_STANDARD 20)
+set_property(TARGET xcbwindow PROPERTY CXX_STANDARD 14)
 
 pkg_check_modules(KS REQUIRED xcb-keysyms)
 

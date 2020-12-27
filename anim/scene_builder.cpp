@@ -14,7 +14,7 @@
 #include <fstream>
 #include <iomanip>
 #include <list>
-#include <variant> // For error union.
+//#include <variant> // For error union.
 #include "read_JPEG_file.h"
 #include "read_png_file.h"
 #include "parse_json_utils.h"
@@ -822,9 +822,55 @@ struct FontUsage
 };
 std::list<FontUsage> fonts;
 FT_Library library;
+#if __cplusplus < 20191231
+struct A {
+    template<typename T>
+    operator T*(); // conversion to pointer to any type
+};
+ 
+// out-of-class definition
+template<typename T>
+A::operator T*() {return nullptr;}
+ 
+// explicit specialization for char*
+template<>
+A::operator char*() {return nullptr;}
+ 
+// explicit instantiation
+template A::operator void*();
+
+
+struct FontExpected {
+	FontExpected(int error) : error(error),index_(1) {
+
+	}
+	FontExpected(const FontUsage& f) :f(f),index_(0) {
+
+	}
+	int index() const { return index_; }
+
+	int error;
+	FontUsage f;
+	int index_;
+};
+//namespace std {
+template <typename T> T get(const FontExpected& f);
+template <> int get(const FontExpected& f) { return f.error; }
+template <> FontUsage get(const FontExpected& f) { return f.f; }
+//}
+//template <typename T> T FontExpected::get();
+//template<> FontUsage FontExpected::get() { return f; }
+//A::operator T*() {return nullptr;}
+ 
+//	template  <> int FontExpected::get() { return error; }
+#else
 typedef std::variant<FontUsage,int> FontExpected;
+#endif
 FontExpected make_font_expected(int error) {
 	return FontExpected(error);
+}
+FontExpected make_font_expected(const FontUsage& usage) {
+	return FontExpected(usage);
 }
 
 FontExpected
@@ -836,7 +882,7 @@ make_font(const std::string& fontfile, int size)
 	for (auto& font: fonts)
 	{
 		if (font.font == finalpath && font.size == size)
-			return std::variant<FontUsage,int>(font);
+			return FontExpected(font);//std::variant<FontUsage,int>(font);
 	}
 	FontUsage font;
 	font.font = finalpath;
@@ -846,17 +892,17 @@ make_font(const std::string& fontfile, int size)
 	if (fterror == FT_Err_Unknown_File_Format)
 	{
 		LOG("Font not valid" << ft_err_string(fterror));
-		return std::variant<FontUsage,int>(-1);
+		return FontExpected(-1);//std::variant<FontUsage,int>(-1);
 	}
 	else if (fterror)
 	{
 		LOG("FreeType font " << finalpath << " error " << ft_err_string(fterror));
-		return std::variant<FontUsage,int>(-1);
+		return FontExpected(-1);//std::variant<FontUsage,int>(-1);
 	}
 	else if (font.face == NULL)
 	{
 		LOG("FreeType face is null but no error?");
-		return std::variant<FontUsage,int>(-1);
+		return FontExpected(-1);//std::variant<FontUsage,int>(-1);
 	}
 
 	font.size = size ? size : 16;
@@ -884,7 +930,7 @@ void SceneBuilder::prepare_text(GraphicsEngine* engine)
 		auto exp_font = make_font(t.second.font, t.second.size);
 		if (exp_font.index() != 0)
 			exit(1);
-		FontUsage font = std::get<FontUsage>(exp_font);
+		FontUsage font = get<FontUsage>(exp_font);
 		FT_Face& face = font.face;
 		FT_GlyphSlot slot = face->glyph; /* a small shortcut */
 		int pen_x, pen_y, n;
