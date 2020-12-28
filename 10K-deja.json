@@ -1,6 +1,6 @@
 {
 	"containers": [
-		{ "area": { "x":0, "y":0, "width":200, "height": 312 }, "asset": "/home/micha/bit/res/Lesson5/Vice2018.jpg" }
+		{ "area": { "x":0, "y":0, "width":200, "height": 312 }, "asset": "res/Lesson5/Vice2018.jpg" }
 	   ,{ "area": { "x":0, "y":460,"width":1832, "height": 148 }, "text": {"size":148,"string":"ã�‚ã�„ é‡‘æŸ‘", "font":"/usr/share/fonts/dejavu/DejaVuSansMono.ttf" }}
 	   ,{ "area": { "x":0, "y":312,"width":1832, "height": 148 }, "text": {"size":148,"string":"That's too many dang words", "font":"/usr/share/fonts/dejavu/DejaVuSansMono.ttf" }}
 	]
