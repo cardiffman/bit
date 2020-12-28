@@ -346,7 +346,14 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE _h, LPSTR pCmdLine, int nCmdSh
                 if (testing)
                     input_arg = 2;
                 cout << "Started parsing of " << ws2s(argv[input_arg]) << endl;
-				builder.parse_containers(ws2s(argv[input_arg]).c_str(), engine);
+                char path[2048];
+                GetModuleFileNameA(hInstance, path, sizeof(path));
+                cout << "Module filename " << path << endl;
+                char* sl = strrchr(path, '/');
+                if (sl == nullptr)
+                    sl = strrchr(path, '\\');
+                *sl = 0;
+				builder.parse_containers("c:/cygwin64/home/micha/bit/",ws2s(argv[input_arg]).c_str(), engine);
                 cout << "Completed parsing" << endl;
                 scene.containers = builder.nc;
                 scene.assets = builder.na;
