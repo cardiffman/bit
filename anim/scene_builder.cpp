@@ -1192,25 +1192,27 @@ void SceneBuilder::parse_asset_label(JSValue c, unsigned& asset_ref)
 }
 void SceneBuilder::parse(GraphicsEngine* engine, JSValue root)
 {
-	for (auto a : root["assets"]) {
-		Asset asset = {0}; asset.id = 0; std::string url;
-		if (a.isMember("label")) {
-			auto label = a["label"].asString();
-			if (!named_a.count(label))
-			{
-				asset.id = ++asset_id;
-				na.push_back(asset);
-				named_a[label] = asset;
+	if (root.isMember("assets")) {
+		for (auto a : root["assets"]) {
+			Asset asset = {0}; asset.id = 0; std::string url;
+			if (a.isMember("label")) {
+				auto label = a["label"].asString();
+				if (!named_a.count(label))
+				{
+					asset.id = ++asset_id;
+					na.push_back(asset);
+					named_a[label] = asset;
+				}
+				else
+				{
+					asset = named_a[label];
+				}
 			}
-			else
-			{
-				asset = named_a[label];
+			if (a.isMember("url")) {
+				url = a["url"].asString();
 			}
+			urls_by_id[asset.id] = url;
 		}
-		if (a.isMember("url")) {
-			url = a["url"].asString();
-		}
-		urls_by_id[asset.id] = url;
 	}
 	std::vector<std::pair<JSValue,int>> work;
 	for (auto c : root["containers"]) {
@@ -1263,7 +1265,8 @@ void SceneBuilder::parse(GraphicsEngine* engine, JSValue root)
 				tt.text = jt.asString();
 			} else if (jt.isObject()) {
 				cout << "Incoming text asset " << jt << endl;
-				tt.font = jt["font"].asString();
+				if (jt.isMember("font"))
+					tt.font = jt["font"].asString();
 				tt.text = jt["string"].asString();
 				tt.size = jt["size"].asInt();
 			}
@@ -1325,6 +1328,17 @@ void SceneBuilder::parse_containers(const char* path, const char* file, Graphics
 	}
 	parse(engine, root);
 	//std::cout << root << std::endl;
+#endif
+#if !defined(USE_JSONCPP) && !defined(USE_JSMN)
+	cout << __FUNCTION__ << " using cmjson "<< endl;
+	std::ifstream f(file,std::ios_base::binary);
+	std::stringstream ss;
+	ss << f.rdbuf();
+	std::string s = ss.str();
+	const char* st = s.data();
+	const char* en = st + s.size();
+	JSValue root = parse_json(st, en);
+	parse(engine, root);
 #endif
 	nc.insert(nc.begin(), Container());
 	std::sort(nc.begin(), nc.end(), by_id);

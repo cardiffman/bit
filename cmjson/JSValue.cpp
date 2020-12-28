@@ -60,38 +60,51 @@ JSValue JSValue::operator[](const std::string& index) const {
 JSValue& JSValue::operator[](int index) {
     std::cout << "reference access at index " << index << std::endl;
     Key k(index);
-    cout << "Value type is " << type << " instead of " << JS_ARRAY << " or " << JS_OBJECT << endl;
+    //cout << "Value type is " << type << " instead of " << JS_ARRAY << " or " << JS_OBJECT << endl;
     if (type == JS_NULL)
         *this = JSValue(JS_ARRAY);
-    cout << "Value type is " << type << " instead of " << JS_ARRAY << " or " << JS_OBJECT << endl;
-    std::cout << "Made index, map at " << guts.o << " map size " << guts.o->size() << endl;
-    auto p = guts.o->lower_bound(k);
-    cout << "Search for lower bound " << endl;
-    if (p != guts.o->end() && k == p->first)
-        return p->second;
-    cout << "Adding entry to map " << endl;
+    //cout << "Value type is " << type << " instead of " << JS_ARRAY << " or " << JS_OBJECT << endl;
+    std::cout << "Made index, map size " << guts.o->size() << endl;
+    //auto p = guts.o->lower_bound(k);
+    auto r = guts.o->equal_range(k);
+    //cout << "Search for lower bound " << endl;
+    //if (p != guts.o->end() && k == p->first)
+    //    return p->second;
+    if (r.first != r.second && k == r.first->first)
+        return r.first->second;
+    auto p = r.first;
+    //cout << "Adding entry to map " << endl;
     Object::value_type v(k,JSValue());
     p = guts.o->insert(p,v);
     return p->second;
 }
 JSValue& JSValue::operator[](const char* index) {
-    return (*guts.o)[index];
-}
-JSValue& JSValue::operator[](const std::string& index) {
-    std::cout << "reference access at index " << index << std::endl;
     Key k(index);
-    cout << "Value type is " << type << " instead of " << JS_ARRAY << " or " << JS_OBJECT << endl;
     if (type == JS_NULL)
         *this = JSValue(JS_OBJECT);
-    cout << "Value type is " << type << " instead of " << JS_ARRAY << " or " << JS_OBJECT << endl;
-    std::cout << "Made index, map at " << guts.o << " map size " << guts.o->size() << endl;
     auto p = guts.o->lower_bound(k);
-    cout << "Search for lower bound " << endl;
     if (p != guts.o->end() && k == p->first) {
-        cout << "Lower bound is not end and key " << p->first.s << " matches " << index << endl;
         return p->second;
     }
-    cout << "Adding entry to map " << endl;
+    Object::value_type v(k,JSValue());
+    p = guts.o->insert(p,v);
+    return p->second;
+}
+JSValue& JSValue::operator[](const std::string& index) {
+    //std::cout << "reference access at index " << index << std::endl;
+    Key k(index);
+    //cout << "Value type is " << type << " instead of " << JS_ARRAY << " or " << JS_OBJECT << endl;
+    if (type == JS_NULL)
+        *this = JSValue(JS_OBJECT);
+    //cout << "Value type is " << type << " instead of " << JS_ARRAY << " or " << JS_OBJECT << endl;
+    //std::cout << "Made index, map size " << guts.o->size() << endl;
+    auto p = guts.o->lower_bound(k);
+    //cout << "Search for lower bound " << endl;
+    if (p != guts.o->end() && k == p->first) {
+        //cout << "Lower bound is not end and key " << p->first.s << " matches " << index << endl;
+        return p->second;
+    }
+    //cout << "Adding entry to map " << endl;
     Object::value_type v(k,JSValue());
     p = guts.o->insert(p,v);
     return p->second;

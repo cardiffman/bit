@@ -79,15 +79,15 @@ JSValue parse_json(const char*& p, const char* end) {
 			std::string name;
 			//cout <<  "Looking for name from " << p << endl;
 			parse_string(name, p, end);
-			cout << "name:" << name << endl;
+			//cout << "name:" << name << endl;
 			while (p != end && isblank(*p)) p++;
-			cout << "Got colon now " << p << endl;
+			//cout << "Got colon now " << p << endl;
 			if (p != end && *p==':') p++;
 			//cout << "Looking at the next thing " << p << endl;
 			JSValue value = parse_json(p, end);
 			//cout << "Got the next thing what's left is " << p << endl;
 			values[name] = value;
-			cout << "Entered a value" << endl;
+			//cout << "Entered a value" << endl;
 			while (p != end && isblank(*p)) p++;
 			if (p != end && *p==',') p++;
 			while (p != end && isblank(*p)) p++;
@@ -137,7 +137,7 @@ JSValue parse_json(const char*& p, const char* end) {
 			}
 		}
 		// at this point we have some number in s.
-		cout << "Parser recognizes " << s << " as a number. It is" << (flt?"n't":"") << " an integer" << endl;
+		//cout << "Parser recognizes " << s << " as a number. It is" << (flt?"n't":"") << " an integer" << endl;
 		return flt ? JSValue(strtod(s.c_str(), NULL)) : JSValue((int)strtol(s.c_str(),NULL,10));
 	} else if (s[0]=='t' || s[0]=='f' || s[0]=='n') {
 		while (p != end && isalpha(*p)) {

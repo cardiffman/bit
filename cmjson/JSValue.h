@@ -2,35 +2,32 @@
 #include <string>
 #include <algorithm>
 #include <map>
+#include <unordered_map>
 #include <cstring>
 
 enum JSValueIndex { JS_NULL, JS_INT, JS_DOUBLE, JS_BOOL, JS_STRING, JS_ARRAY, JS_OBJECT };
 class JSValue {
     struct Key {
-        const char* s;
+        enum KeyType { KT_STRING, KT_INT} type;
+        std::string s;
         int i;
-        Key(const char* s) : s(s){}
-        Key(int i) : s(nullptr),i(i){}
-        Key(const std::string& t) : s(t.c_str()) {}
+        Key() : type(KT_INT),i(0) {}
+        Key(const char* s) : type(KT_STRING), s(s){}
+        Key(int i) : type(KT_INT),i(i){}
+        Key(const std::string& t) : type(KT_STRING), s(t) {}
         bool operator<(const Key& o) const {
-            if (s==nullptr) {
-                return i<o.i;
-            }
-            return strcmp(s,o.s)<0;
+            if (type==KT_STRING)
+                return s<o.s;
+            return i<o.i;
         }
         bool operator==(const Key& o) const {
-            if (s==nullptr)
-                return i==o.i;
-            return strcmp(s,o.s)==0;
+            if (type==KT_STRING)
+                return s==o.s;
+            return i==o.i;
         }
     };
     static char* duptext(const char* t);
 public:
-	JSValue(JSValueIndex index=JSValueIndex::JS_NULL) : type(index) {
-        if (index == JS_ARRAY || index == JS_OBJECT) {
-            guts.o = new Object();
-        }
-    }
 	JSValue(int v) : type(JS_INT) { guts.i = v; }
 	JSValue(double v) : type(JS_DOUBLE) { guts.d = v; }
 	JSValue(bool v) : type(JS_BOOL) { guts.b = v; }
@@ -40,7 +37,7 @@ public:
 	//JSValue(const std::map<std::string,JSValue>& v) { pv = new JSValueObject(v); }
 	//JSValue(const std::vector<JSValue>& v) { pv = new JSValueArray(v); }
 	JSValue(const JSValue& other);
-    int type;
+    JSValueIndex type;
     using Object = std::map<Key,JSValue>;
     union {
         int i;
@@ -49,6 +46,11 @@ public:
         const char* s;
         Object* o;
     } guts;
+	JSValue(JSValueIndex index=JSValueIndex::JS_NULL) : type(index) {
+        if (index == JS_ARRAY || index == JS_OBJECT) {
+            guts.o = new Object();
+        }
+    }
 	int index() const { return type; }
 	//void visit(JSValueVisitor& visitor) const { pv->acceptVisit(visitor); }
 	JSValue& operator=(const JSValue& other) {
@@ -119,7 +121,7 @@ public:
         }
         JSValue key() const {
             Key k = m_ptr->first;
-            return k.s ? JSValue(k.s) : JSValue(k.i);
+            return k.type==Key::KT_STRING ? JSValue(k.s) : JSValue(k.i);
         }
 		JSValue::Object::iterator m_ptr;
 	};
