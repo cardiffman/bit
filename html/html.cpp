@@ -24,14 +24,22 @@ bool parseHTML(InputReader* reader, ElementVisitor& visitor)
             text.push_back(ch);
             ch = reader->read();
         }
-        Text t(text);
-        t.visit(visitor);
-        text.clear();
+        if (text.size())
+        {
+            Text t(text);
+            t.visit(visitor);
+            text.clear();
+        }
         if (reader->eof())
             break;
         /// Read up to '<' now read a tag of some kind.
         ch = reader->read(); // now read next char.
         bool endTag = false;
+        if (ch=='!') {
+            while (ch != '>' && !reader->eof())
+                ch = reader->read();
+            continue;
+        }
         if (ch=='/') {
             endTag = true;
             ch = reader->read();
@@ -46,11 +54,11 @@ bool parseHTML(InputReader* reader, ElementVisitor& visitor)
             ch = reader->read();
         map<wstring,wstring> atrs;
         wstring atr; wstring value;
-        while (ch != '>')
+        while (ch != '>' && ch != '/')
         {
             atr.clear();
             value.clear();
-            while (isalpha(ch))
+            while (isalpha(ch) || ch=='-') // a dash is expected in attribute names.
             {
                 atr.push_back(ch);
                 ch = reader->read();
@@ -95,8 +103,11 @@ bool parseHTML(InputReader* reader, ElementVisitor& visitor)
                     }
                 }
             }
-            atrs[atr]=value;
+            if (atr.size())
+                atrs[atr]=value;
         }
+        if (ch == '/')
+            ch = reader->read();
         if (name==L"font")
         {
             if (endTag)
